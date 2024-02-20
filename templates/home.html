@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Page</title>
+    <link rel="stylesheet" href="/static/home/style.css">
+    <script>
+        function revealPass() {
+            const passField = document.getElementById("password");
+            const toType = passField.getAttribute("type") == "password" ? "text" : "password";
+            passField.setAttribute("type", toType);
+        }
+    </script>
+</head>
+
+<body>
+
+    <div class="login-container">
+        <h2>{% if name != "" %}
+                {{ name }}'s
+            {% endif %}
+            MythKeeper Storage</h2>
+        <form id="login-form" action="#" method="post">
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+            <div onchange="revealPass();">
+                <label>
+                    <input type="checkbox" id="reveal" name="reveal">Show Password
+                </label>
+            </div>
+            <br>
+            <button type="submit">Login</button>
+        </form>
+        <div class="signup-link">
+            <p>Don't have an account? <a href="/signup">Head here</a></p>
+        </div>
+    </div>
+</body>
+
+</html>
