@@ -66,3 +66,8 @@ button:hover {
 .signup-link a:hover {
     text-decoration: underline;
 }
+
+.errors {
+    color: #ff2d2d;
+    text-align: center;
+}

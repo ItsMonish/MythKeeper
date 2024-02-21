@@ -22,7 +22,7 @@
                 {{ name }}'s
             {% endif %}
             MythKeeper Storage</h2>
-        <form id="login-form" action="#" method="post">
+        <form id="login-form" onsubmit="login(event);" method="post">
             <div class="form-group">
                 <label for="username">Username</label>
                 <input type="text" id="username" name="username" required>
@@ -42,7 +42,9 @@
         <div class="signup-link">
             <p>Don't have an account? <a href="/signup">Head here</a></p>
         </div>
+        <div class="errors"><p>{{ error }}</p></div>
     </div>
+    <script src="/static/home/login.js"></script>
 </body>
 
 </html>
