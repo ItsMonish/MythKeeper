@@ -1,8 +1,9 @@
-from flask import Flask,render_template,Response,request,url_for,session,redirect
+from flask import Flask,render_template,Response,request,url_for,session,redirect, jsonify
 from configparser import ConfigParser
 from config import configs
 from datetime import timedelta
 from app.auth.login import authLogin
+from app.auth.signup import createUser
 
 application = Flask(__name__)
 application.secret_key = configs.SECRET_KEY
@@ -50,6 +51,21 @@ def signUpResponse() -> Response:
               Contact the admininstrator. If you have login credential <a href=\"/\">click here</a>."
     else:
         return render_template("signup.html",name=config['General']['HostingName'])
+    
+@application.route("/dashboard")
+def testDash():
+    return render_template('dashboard.html')
+
+@application.route("/createUser", methods=['POST'])
+def userCreation():
+    if config['Login']['AllowSignUps'] == "False":
+        return jsonify(status="failed")
+    else:
+        data = request.json
+        resp = createUser(data['username'],data['password'])
+        if resp['status'] == 'ok':
+            session['username'] = data['username'] 
+        return jsonify(resp)
 
 if __name__=="__main__":
     config = ConfigParser()

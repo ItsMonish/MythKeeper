@@ -8,16 +8,11 @@ async function sha256digest(text) {
     return hash;
 }
 
-async function calculateHash(password) {
-    let hash = await sha256digest(password);
-    return hash; 
-}
-
 async function login(event) {
     event.preventDefault();
     const un = document.getElementById("username").value;
     const pw = document.getElementById("password").value;
-    const hashPw = await calculateHash(pw);
+    const hashPw = await sha256digest(pw);
     const data = {
         username: un,
         password: hashPw
@@ -42,4 +37,48 @@ async function login(event) {
     .catch(error => {
         alert("There appears to be a problem with contacting server. Try again")
     });
+}
+
+async function signup(event) {
+    event.preventDefault();
+    const un = document.getElementById("username").value;
+    const pw = document.getElementById("password").value;
+    const confirmpw = document.getElementById("confirmpassword").value;
+    const errTag = document.getElementById("errors");
+    if (pw != confirmpw) {
+        errTag.innerHTML = "<p>Password's don't match</p>";
+        return;
+    }
+    const hashPw = await sha256digest(pw);
+    const data = {
+        username: un,
+        password: hashPw
+    };
+    const options = {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    };
+    fetch('/createUser',options)
+    .then(response => {
+        if (!response.ok) {
+            throw new error("Response Failed");
+        }
+        return response.json();
+    })
+    .then(jsonResponse => {
+        if (jsonResponse.status == "ok") {
+            alert("Account Creation successful");
+            window.location.href = jsonResponse.redirect;
+        } else {
+            alert("Account Creation failed");
+            if (jsonResponse.status == "duplicate") {
+                window.location.href = "There appears the username already exists. Try another"
+            }
+        }
+    }).catch(err => {
+        alert("There appears to be a problem with contacting server. Try again")
+    })
 }

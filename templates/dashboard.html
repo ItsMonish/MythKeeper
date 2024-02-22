@@ -1,2 +1,88 @@
-<h1>Dashboard is supposed to be here</h1>
-<h1><a href="/logout">Logout</a></h1>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cloud Storage</title>
+    <link rel="stylesheet" href="/static/dashboard/style.css">
+</head>
+<body>
+
+<header>
+    <div class="container">
+        <h1>MythKeeper Storage</h1>
+        <br>
+        <nav>
+            <ul>
+                <li><a href="#">Revan</a></li>
+                <li><a href="#">Change Password</a></li>
+                <li><a href="#">Delete Account</a></li>
+            </ul>
+        </nav>
+    </div>
+</header>
+
+<div class="container">
+    <section class="upload-section">
+        <h2>Upload</h2>
+        <div class="upload-buttons">
+            <button>Upload File</button>
+            <button>Upload Folder</button>
+        </div>
+    </section>
+
+    <section class="uploaded-files-section">
+        <h2>Uploaded Files</h2>
+        <table class="file-table">
+            <thead>
+                <tr>
+                    <th>File Name</th>
+                    <th>Time of Upload</th>
+                    <th>File Size</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>script.py</td>
+                    <td>2024-02-17 09:30 AM</td>
+                    <td>0.76 MB</td>
+                </tr>
+                <tr>
+                    <td>IMG_20180525_111146498.jpg</td>
+                    <td>2024-02-19 09:34 AM</td>
+                    <td>3.2 MB</td>
+                </tr>
+                <!-- Add more rows dynamically or fetch from server -->
+            </tbody>
+        </table>
+    </section>
+
+    <section class="shared-files-section">
+        <h2>Shared with You</h2>
+        <table class="file-table">
+            <thead>
+                <tr>
+                    <th>File Name</th>
+                    <th>Time of Upload</th>
+                    <th>File Size</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>IMG20230514-134134.jpg</td>
+                    <td>2024-02-18 09:45 AM</td>
+                    <td>2.8 MB</td>
+                </tr>
+                <tr>
+                    <td>234591-214234.pdf</td>
+                    <td>2024-02-18 09:52 AM</td>
+                    <td>5.1 MB</td>
+                </tr>
+                <!-- Add more rows dynamically or fetch from server -->
+            </tbody>
+        </table>
+    </section>
+</div>
+
+</body>
+</html>

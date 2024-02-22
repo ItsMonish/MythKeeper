@@ -1,7 +1,11 @@
-from sqlite3 import connect,Connection
+from sqlite3 import connect
 from config import configs
 
-def getDatabaseCursor(dbName: str) -> Connection:
-    con = connect(configs.DB_DIR + dbName)
+con = None
+
+def getDatabaseCursor(dbName: str):
+    global con
+    if con == None:
+        con = connect(configs.DB_DIR + dbName)
     cur = con.cursor()
-    return cur
+    return con,cur
