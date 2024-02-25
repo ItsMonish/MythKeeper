@@ -75,7 +75,11 @@ async function signup(event) {
         } else {
             alert("Account Creation failed");
             if (jsonResponse.status == "duplicate") {
-                window.location.href = "There appears the username already exists. Try another"
+                errTag.innerHTML = "There appears the username already exists. Try another"
+            } else if (jsonResponse.status == "invalidUsername") {
+                errTag.innerHTML = "Invalid Username. User name should only consist \
+                                    of lower case alphabets and numbers and should \
+                                    should not start with numbers. Try again"
             }
         }
     }).catch(err => {

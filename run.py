@@ -1,18 +1,17 @@
 from flask import Flask,render_template,Response,request,url_for,session,redirect, jsonify
-from configparser import ConfigParser
 from config import configs
 from datetime import timedelta
 from app.auth.login import authLogin
 from app.auth.signup import createUser
+from app.utils.fileSaver import saveContent
 
 application = Flask(__name__)
 application.secret_key = configs.SECRET_KEY
 application.permanent_session_lifetime = timedelta(minutes=30)
-global configParser
 
 @application.route("/")
 def serveLoginPage() -> Response:
-    return render_template("home.html",name=config['General']['HostingName'])
+    return render_template("home.html",name=configs.HOSTING_NAME)
 
 @application.route("/login",methods=['POST'])
 def authenticateLogin():
@@ -29,7 +28,7 @@ def authenticateLogin():
     
 @application.route("/error")
 def loginError():
-    return render_template("home.html",name=config['General']['HostingName'],error="Login Failed")
+    return render_template("home.html",name=configs.HOSTING_NAME,error="Login Failed")
     
 @application.route("/<string:user>")
 def serveDashboard(user):
@@ -46,19 +45,29 @@ def logOutUser():
 
 @application.route("/signup")
 def signUpResponse() -> Response:
-    if config['Login']['AllowSignUps'] == "False":
+    if configs.SIGNUPS == "False":
         return "<p>It appears the administrator has turned off sign ups for this hosting.\
               Contact the admininstrator. If you have login credential <a href=\"/\">click here</a>."
     else:
-        return render_template("signup.html",name=config['General']['HostingName'])
+        return render_template("signup.html",name=configs.HOSTING_NAME)
     
-@application.route("/dashboard")
-def testDash():
-    return render_template('dashboard.html')
+@application.route("/upload",methods=["POST"])
+def uploadContents():
+    if 'files[]' not in request.files:
+        return jsonify(), 400
+    if session.get('username') == None:
+        return jsonify(), 401
+    files = request.files.getlist('files[]')
+    manifest = request.form.get('manifest')
+    opResult = saveContent(files,session.get('username'),manifest)
+    if opResult:
+        return jsonify(), 200
+    else:
+        return jsonify(), 500
 
 @application.route("/createUser", methods=['POST'])
 def userCreation():
-    if config['Login']['AllowSignUps'] == "False":
+    if configs.SIGNUPS == "False":
         return jsonify(status="failed")
     else:
         data = request.json
@@ -67,7 +76,9 @@ def userCreation():
             session['username'] = data['username'] 
         return jsonify(resp)
 
+@application.route("/dashboard")
+def testDash():
+    return render_template("dashboard.html")
+
 if __name__=="__main__":
-    config = ConfigParser()
-    config.read("./keeper.conf")
     application.run(debug=True,host="0.0.0.0")

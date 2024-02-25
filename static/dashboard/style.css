@@ -69,7 +69,6 @@ li :hover {
     border-bottom: 1px solid #ccc; /* Only horizontal lines */
     padding: 8px;
     text-align: left;
-    width: 33%;
 }
 
 .file-table th {
@@ -86,3 +85,25 @@ li :hover {
     text-decoration: underline;
 }
 
+.notification {
+    display: none;
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background-color: #fff;
+    color: #333;
+    padding: 15px;
+    border-radius: 5px;
+    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.5);
+    z-index: 9999;
+}
+
+.notification-title {
+    font-weight: bold;
+    margin-bottom: 5px;
+    display: block;
+}
+
+.notification-message {
+    display: block;
+}

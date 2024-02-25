@@ -304,5 +304,7 @@ pip-selfcheck.json
 .history
 .ionide
 
-#Database folders
+#Database,manifests and  storage folders
 databases/
+manifests/
+storage/
