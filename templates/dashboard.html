@@ -31,8 +31,6 @@
             <div class="upload-buttons">
                 <input type="file" id="fileInput" multiple style="display:none;">
                 <button onclick="document.getElementById('fileInput').click()">Upload File</button>
-                <input type="file" id="folderInput" webkitdirectory directory multiple style="display:none;">
-                <button onclick="document.getElementById('folderInput').click()">Upload Folder</button>
             </div>
         </section>
 
@@ -42,9 +40,9 @@
                 <thead>
                     <tr>
                         <th style="width:5%"></th>
-                        <th style="width:30%">File Name</th>
+                        <th style="width:50%">File Name</th>
                         <th style="width:30%">Time of Upload</th>
-                        <th style="width:30%">File Size</th>
+                        <th style="width:15%">File Size</th>
                         <th style="width:5%"></th>
                     </tr>
                 </thead>
@@ -59,9 +57,9 @@
                 <thead>
                     <tr>
                         <th style="width:5%"></th>
-                        <th style="width:30%">File Name</th>
+                        <th style="width:50%">File Name</th>
                         <th style="width:30%">Time of Upload</th>
-                        <th style="width:30%">File Size</th>
+                        <th style="width:15%">File Size</th>
                         <th style="width:5%"></th>
                     </tr>
                 </thead>
@@ -75,6 +73,17 @@
         <span class="notification-title"></span>
         <span class="notification-message"></span>
     </div>
+
+    <div id="confirmBox" class="confirm-box">
+        <div class="confirm-content">
+            <span id="confirmMessage"></span>
+            <br>
+            <br>
+            <button id="confirmButton">Download</button>
+            <button id="cancelButton">Cancel</button>
+        </div>
+    </div>
+
 
     <script src="/static/dashboard/script.js"></script>
 </body>

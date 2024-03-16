@@ -6,6 +6,6 @@ con = None
 def getDatabaseCursor(dbName: str):
     global con
     if con == None:
-        con = connect(configs.DB_DIR + dbName)
+        con = connect(configs.DB_DIR + dbName,check_same_thread=False)
     cur = con.cursor()
     return con,cur

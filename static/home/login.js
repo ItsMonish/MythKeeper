@@ -32,6 +32,7 @@ async function login(event) {
         return response.text();
     })
     .then(data => {
+        sessionStorage.setItem("un",un)
         window.location.href = data
     })
     .catch(error => {

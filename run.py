@@ -1,4 +1,4 @@
-from flask import Flask,render_template,Response,request,url_for,session,redirect, jsonify
+from flask import Flask,render_template,Response,request,url_for,session,redirect, jsonify,send_file
 from config import configs
 from datetime import timedelta
 from app.auth.login import authLogin
@@ -75,6 +75,25 @@ def userCreation():
         if resp['status'] == 'ok':
             session['username'] = data['username'] 
         return jsonify(resp)
+    
+@application.route("/manifest")
+def getManifest():
+    un = session['username']
+    manifestFile = "{}.json".format(un)
+    manifestFile = configs.USR_DIR + manifestFile
+    if not un:
+        return jsonify(),403
+    with open(manifestFile) as f:
+        con = f.readlines()
+    con = ''.join(con)
+    return jsonify(con),200
+
+@application.route("/resource/<string:resource>")
+def sendResource(resource):
+    if session.get("username") != None:
+        return send_file("{}{}".format(configs.STORAGE_DIR,resource),as_attachment=False)
+    else:
+        return jsonify(),403
 
 @application.route("/dashboard")
 def testDash():
