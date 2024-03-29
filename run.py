@@ -71,7 +71,7 @@ def userCreation():
         return jsonify(status="failed")
     else:
         data = request.json
-        resp = createUser(data['username'],data['password'])
+        resp = createUser(data['username'],data['password'],data["data"])
         if resp['status'] == 'ok':
             session['username'] = data['username'] 
         return jsonify(resp)
@@ -79,7 +79,7 @@ def userCreation():
 @application.route("/manifest")
 def getManifest():
     un = session['username']
-    manifestFile = "{}.json".format(un)
+    manifestFile = "{}".format(un)
     manifestFile = configs.USR_DIR + manifestFile
     if not un:
         return jsonify(),403

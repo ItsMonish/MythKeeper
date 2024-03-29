@@ -7,21 +7,17 @@ from os.path import join
 from json import dump
 
 pattern = r'^[a-z][a-z0-9]*$'
-emptyRec = {
-    "root": [],
-    "shared": []
-}
 
-def createUser(userName,password):
+def createUser(userName,password,manifest):
     if not match(pattern,userName):
         return {"status":"invalidUsername"}
     con, dbCursor = getDatabaseCursor("creds.db")
     rec = dbCursor.execute("SELECT * FROM credentials WHERE username = ?",(userName,)).fetchone()
     if rec != None:
         return {"status":"duplicate"}
-    recordFile = join(configs.USR_DIR,"{}.json".format(userName))
+    recordFile = join(configs.USR_DIR,"{}".format(userName))
     with open(recordFile,'w') as f:
-        dump(emptyRec,f)
+        f.write(manifest)
     salt = get_random_bytes(4).hex()
     hashObj = SHA256.new("{}{}".format(salt,password).encode())
     digest = hashObj.hexdigest()

@@ -12,6 +12,23 @@
             const toType = passField.getAttribute("type") == "password" ? "text" : "password";
             passField.setAttribute("type", toType);
         }
+        function moveNext() {
+            let pw = document.getElementById("password").value;
+            let confirmpw = document.getElementById("confirmpassword").value;
+            let errTag = document.getElementById("errors");
+            if (pw != confirmpw) {
+                errTag.innerHTML = "<p>Password's don't match</p>";
+                return;
+            }
+            let firstFields = document.getElementsByClassName("first");
+            for (let i = 0; i < firstFields.length; i++) {
+                firstFields[i].style.display = "none";
+            }
+            let secondFields = document.getElementsByClassName("second");
+            for (let i = 0; i < secondFields.length; i++) {
+                secondFields[i].style.display = "block";
+            }
+        }
     </script>
 </head>
 
@@ -26,25 +43,34 @@
                         {% endif %}
                             hosting</h2>
         <form id="login-form" onsubmit="signup(event);">
-            <div class="form-group">
+            <div class="form-group first">
                 <label for="username">Choose a Username</label>
                 <input type="text" id="username" name="username" required>
             </div>
-            <div class="form-group">
+            <div class="form-group first">
                 <label for="password">Choose a Password</label>
                 <input type="password" id="password" name="password" required>
             </div>
-            <div class="form-group">
+            <div class="form-group first">
                 <label for="confirmpassword">Confirm Password</label>
                 <input type="password" id="confirmpassword" name="password" required>
             </div>
-            <div onchange="revealPass();">
+            <div class="first" onchange="revealPass();">
                 <label>
                     <input type="checkbox" id="reveal" name="reveal">Show Password
                 </label>
             </div>
+            <div class="form-group second" style="display: none;">
+                <label for="localPass">Enter lock password</label>
+                <input type="password" id="localpass" required>
+            </div>
+            <div class="form-group second" style="display: none;">
+                <label for="localPassConfirm">Confirm lock Password</label>
+                <input type="password" id="localpassconfirm" required>
+            </div>
             <br>
-            <button type="submit">Sign Up</button>
+            <button class="first" id="nextBtn" onclick="moveNext();">Next</button>
+            <button class="second" id="submit" type="submit" style="display: none;">Sign Up</button>
         </form>
         <div class="signup-link">
             <p>Already have credentials? <a href="/">Head here</a></p>

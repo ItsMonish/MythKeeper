@@ -7,19 +7,77 @@ document.getElementById('fileInput').addEventListener('change', function () {
 window.onload = function() {
     fetch("/manifest")
     .then(response => {
-        if(response.status == 200) return response.json();
-        else if(response.status == 403) {
+        if(response.status === 200) return response.text();
+        else if(response.status === 403) {
             alert("Unauthorized. Login in and try again");
-            window.location.href = "/"
+            window.location.href = "/";
+            throw new Error("Unauthorized");
         } else {
             alert("Sorry something went wrong");
+            throw new Error("Something went wrong");
         }
     })
-    .then(manifest => {
-        sessionStorage.setItem("manifest",manifest)
+    .then(encryptedData => {
+        encryptedData = encryptedData.substring(1,encryptedData.length-2)
+        console.log(encryptedData)
+        const key = sessionStorage.getItem("localpass");
+        const combinedData = atob(encryptedData);
+        const iv = combinedData.slice(0, 16); 
+        const encryptedManifest = combinedData.slice(16);
+        
+        return decryptData(encryptedManifest, key, iv);
+    })
+    .then(decryptedManifest => {
+        sessionStorage.setItem("manifest", decryptedManifest);
         document.getElementById("uploaded-files").innerHTML = generateTableContent('');
+    })
+    .catch(error => {
+        console.error(error);
     });
 }
+
+function hexStringToUint8Array(hexString) {
+    const length = hexString.length / 2;
+    const uint8Array = new Uint8Array(length);
+    for (let i = 0; i < length; i++) {
+        const byteValue = parseInt(hexString.substr(i * 2, 2), 16);
+        uint8Array[i] = byteValue;
+    }
+    return uint8Array;
+}
+
+async function decryptData(encryptedData, key, iv) {
+    console.log(encryptedData)
+    const decodedKey = await window.crypto.subtle.importKey(
+        "raw",
+        hexStringToUint8Array(key),
+        { name: "AES-CBC" },
+        false,
+        ["decrypt"]
+    );
+
+    const decodedIV = new Uint8Array(iv.length);
+    for (let i = 0; i < iv.length; i++) {
+        decodedIV[i] = iv.charCodeAt(i);
+    }
+
+    const decodedData = Uint8Array.from(encryptedData, c => c.charCodeAt(0));
+
+    const decryptedBuffer = await window.crypto.subtle.decrypt(
+        {
+            name: "AES-CBC",
+            iv: decodedIV
+        },
+        decodedKey,
+        decodedData
+    );
+
+    const decoder = new TextDecoder();
+    const decryptedString = decoder.decode(decryptedBuffer);
+
+    return decryptedString;
+}
+
 
 function download(resource, filePath) {
     showConfirm("Do you want to download this file?", "Download").then(response => {
@@ -216,7 +274,7 @@ function generateManifest(originalFileNames, renamedFiles, jsonData) {
     return jsonString;
 }
 
-function uploadFiles(files) {
+async function uploadFiles(files) {
     const formData = new FormData();
     const renamedFiles = [];
     const originalFileNames = [];
@@ -232,7 +290,35 @@ function uploadFiles(files) {
 
     let jsonData = JSON.parse(sessionStorage.getItem("manifest"));
     let manifest = generateManifest(originalFileNames, renamedFiles, jsonData);
-    formData.append('manifest', manifest);
+
+    const hashLock = sessionStorage.getItem("localpass");
+    const encoder = new TextEncoder();
+    const manifestBuffer = encoder.encode(manifest);
+    const hashLockBytes = hexStringToUint8Array(hashLock);
+    const importedKey = await window.crypto.subtle.importKey(
+        "raw",
+        hashLockBytes,
+        { name: "AES-CBC" },
+        false,
+        ["encrypt"]
+    );
+    const iv = window.crypto.getRandomValues(new Uint8Array(16)); 
+    const encryptedManifest = await window.crypto.subtle.encrypt(
+        {
+            name: "AES-CBC",
+            iv: iv
+        },
+        importedKey,
+        manifestBuffer
+    );
+
+    const combinedData = new Uint8Array(iv.byteLength + encryptedManifest.byteLength);
+    combinedData.set(iv, 0);
+    combinedData.set(new Uint8Array(encryptedManifest), iv.byteLength);
+
+    const encryptedData = btoa(String.fromCharCode.apply(null, combinedData));
+
+    formData.append('manifest', encryptedData);
 
     fetch('/upload', {
         method: 'POST',
@@ -245,7 +331,7 @@ function uploadFiles(files) {
                 alert("Unauthorized upload attempted. Login and try again");
             } else if (response.status == 500) {
                 showNotification("Failure", "An unexpected error occurred");
-            } else {
+            } else if (response.status == 200) {
                 sessionStorage.setItem("manifest",manifest);
                 showNotification("Success", "Upload completed successfully");
                 document.getElementById("uploaded-files").innerHTML = generateTableContent('');
