@@ -41,7 +41,7 @@ def serveDashboard(user):
 def logOutUser():
     if session.get('username') != None:
         session.pop('username')
-    return "<script>window.location.href='/'</script>"
+    return jsonify(),200
 
 @application.route("/signup")
 def signUpResponse() -> Response:
@@ -53,12 +53,13 @@ def signUpResponse() -> Response:
     
 @application.route("/upload",methods=["POST"])
 def uploadContents():
-    if 'files[]' not in request.files:
+    inbound = request.json
+    if not inbound['files']:
         return jsonify(), 400
     if session.get('username') == None:
         return jsonify(), 401
-    files = request.files.getlist('files[]')
-    manifest = request.form.get('manifest')
+    files = inbound['files']
+    manifest = inbound['manifest']
     opResult = saveContent(files,session.get('username'),manifest)
     if opResult:
         return jsonify(), 200
@@ -91,7 +92,11 @@ def getManifest():
 @application.route("/resource/<string:resource>")
 def sendResource(resource):
     if session.get("username") != None:
-        return send_file("{}{}".format(configs.STORAGE_DIR,resource),as_attachment=False)
+        file = "{}{}".format(configs.STORAGE_DIR,resource)
+        with open(file,'r') as f:
+            contents = f.read()
+            f.close()
+        return jsonify({"content":contents}),200
     else:
         return jsonify(),403
 

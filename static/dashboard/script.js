@@ -19,7 +19,6 @@ window.onload = function() {
     })
     .then(encryptedData => {
         encryptedData = encryptedData.substring(1,encryptedData.length-2)
-        console.log(encryptedData)
         const key = sessionStorage.getItem("localpass");
         const combinedData = atob(encryptedData);
         const iv = combinedData.slice(0, 16); 
@@ -47,7 +46,6 @@ function hexStringToUint8Array(hexString) {
 }
 
 async function decryptData(encryptedData, key, iv) {
-    console.log(encryptedData)
     const decodedKey = await window.crypto.subtle.importKey(
         "raw",
         hexStringToUint8Array(key),
@@ -55,14 +53,14 @@ async function decryptData(encryptedData, key, iv) {
         false,
         ["decrypt"]
     );
-
+    
     const decodedIV = new Uint8Array(iv.length);
     for (let i = 0; i < iv.length; i++) {
         decodedIV[i] = iv.charCodeAt(i);
     }
-
+    
     const decodedData = Uint8Array.from(encryptedData, c => c.charCodeAt(0));
-
+    
     const decryptedBuffer = await window.crypto.subtle.decrypt(
         {
             name: "AES-CBC",
@@ -70,7 +68,7 @@ async function decryptData(encryptedData, key, iv) {
         },
         decodedKey,
         decodedData
-    );
+        );
 
     const decoder = new TextDecoder();
     const decryptedString = decoder.decode(decryptedBuffer);
@@ -79,27 +77,66 @@ async function decryptData(encryptedData, key, iv) {
 }
 
 
-function download(resource, filePath) {
+async function download(resource, filePath) {
     showConfirm("Do you want to download this file?", "Download").then(response => {
         if(response) {
             fetch(`/resource/${resource}`)
             .then(response => {
                 if(response.status != 200) {
                     alert("Download failed. Try again");
+                    return;
                 }
-                return response.blob();
+                return response.json();
             })
-            .then(blob => {
-                const url = window.URL.createObjectURL(blob);
-                const temp = document.createElement("a");
-                temp.href = url;
-                temp.download = filePath;
-                document.body.appendChild(temp);
-                temp.click();
-                temp.remove();
+            .then(jsonContent => {
+                return decryptFile(jsonContent['content'],resource);
+            }).then(decryptedBuffer => {
+                const decryptedBlob = new Blob([decryptedBuffer], { type: 'application/octet-stream' });    
+                const downloadLink = document.createElement('a');
+                downloadLink.href = window.URL.createObjectURL(decryptedBlob);
+                downloadLink.download = filePath; 
+                downloadLink.click();
             });
         }
     });
+}
+
+async function decryptFile(content,resource) {
+    const encryptedData = atob(content);
+    const combinedData = new Uint8Array(encryptedData.length);
+    for (let i = 0; i < encryptedData.length; ++i) {
+        combinedData[i] = encryptedData.charCodeAt(i);
+    }
+    const iv = combinedData.slice(0, 16);
+    const encryptedDataBuffer = combinedData.slice(16);
+    const detes = getFromManifest(resource);
+    const key = await genKey(detes[0],detes[1])
+    const decodedKey = await window.crypto.subtle.importKey(
+        "raw",
+        hexStringToUint8Array(key),
+        { name: "AES-CBC" },
+        false,
+        ["decrypt"]
+    );
+    const decryptedDataBuffer = await crypto.subtle.decrypt(
+        {
+            name: "AES-CBC",
+            iv: iv
+        },
+        decodedKey,
+        encryptedDataBuffer
+    );
+    return decryptedDataBuffer;
+}
+
+function getFromManifest(resource) {
+    manifest = sessionStorage.getItem("manifest");
+    manifest = JSON.parse(manifest);
+    for(const file of manifest['root']) {
+        if(file['resource'] == resource) {
+            return [file['hash'],file['salt']];
+        }
+    }
 }
 
 async function showConfirm(message, action) {
@@ -238,9 +275,11 @@ function generateManifest(originalFileNames, renamedFiles, jsonData) {
 
     for (let i = 0; i < originalFileNames.length; i++) {
         let originalFileName = originalFileNames[i];
-        let renamedFile = renamedFiles[i];
+        let renamedFile = renamedFiles[i][0];
+        let fileHash = renamedFiles[i][1];
+        let salt = renamedFiles[i][2];
         let gen = renamedFile.name;
-        detes.push([originalFileName, renamedFile.size, gen]);
+        detes.push([originalFileName, renamedFile.size, gen, fileHash, salt]);
     }
 
     detes.forEach(detail => {
@@ -252,8 +291,10 @@ function generateManifest(originalFileNames, renamedFiles, jsonData) {
                 "name": filename,
                 "path": detail[0],
                 "resource": detail[2],
-                "size": detail[1]
-            })
+                "size": detail[1],
+                "hash": detail[3],
+                "salt": detail[4]
+            });
         } else {
             components.forEach(component => {
                 if (!(component in current)) {
@@ -274,18 +315,81 @@ function generateManifest(originalFileNames, renamedFiles, jsonData) {
     return jsonString;
 }
 
+function generateSalt() {
+    const saltArray = new Uint8Array(8);
+    crypto.getRandomValues(saltArray);
+    return Array.from(saltArray, byte => ('0' + (byte & 0xFF).toString(16)).slice(-2)).join('');
+}
+
+async function genKey(fileHash, salt) {
+    const localPass = sessionStorage.getItem("localpass")
+    const text = fileHash + salt + localPass;
+    const encTxt = new TextEncoder().encode(text); 
+    const hashPromise = await crypto.subtle.digest("SHA-256", encTxt); 
+    const promiseArray = Array.from(new Uint8Array(hashPromise)); 
+    const hash = promiseArray
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+    return hash;
+}
+
+async function encryptFile(file, key) {
+    const iv = crypto.getRandomValues(new Uint8Array(16));
+    const fileBuffer = await file.arrayBuffer();
+    const cryptoKey = await window.crypto.subtle.importKey(
+        "raw",
+        hexStringToUint8Array(key),
+        { name: "AES-CBC" },
+        false,
+        ["encrypt"]
+    );
+    const encryptedFileBuffer = await crypto.subtle.encrypt(
+        {
+            name: "AES-CBC",
+            iv: iv
+        },
+        cryptoKey,
+        fileBuffer
+    );
+    const combinedData = new Uint8Array(iv.byteLength + encryptedFileBuffer.byteLength);
+    combinedData.set(iv, 0);
+    combinedData.set(new Uint8Array(encryptedFileBuffer), iv.byteLength);
+    const encFile = btoa(String.fromCharCode.apply(null, combinedData));
+    return encFile;
+}
+
+async function logout() {
+    fetch("/logout")
+    .then(response => {
+        if(response.status == 200) {
+            sessionStorage.removeItem("un");
+            sessionStorage.removeItem("localpass");
+            sessionStorage.removeItem("manifest");
+            window.location.href = "/";
+        } else {
+            alert("Logout failed try again");
+        }
+    });
+}
+
+
 async function uploadFiles(files) {
-    const formData = new FormData();
     const renamedFiles = [];
     const originalFileNames = [];
+    const data = {};
+    data.files = [];
 
     for (const file of files) {
         const gen = genResName();
+        const fileHash = await getFileHash(file);
+        const salt = generateSalt();
+        const encKey = await genKey(fileHash,salt);
         const renamedFile = new File([file], gen, { type: file.type });
-        renamedFiles.push(renamedFile);
+        renamedFiles.push([renamedFile,fileHash,salt]);
         if (file.webkitRelativePath == "") originalFileNames.push(file.name)
         else originalFileNames.push(file.webkitRelativePath);
-        formData.append('files[]', renamedFile);
+        const encryptedFile = await encryptFile(renamedFile,encKey);
+        data.files.push({'file': encryptedFile, 'resource': gen});
     }
 
     let jsonData = JSON.parse(sessionStorage.getItem("manifest"));
@@ -318,11 +422,14 @@ async function uploadFiles(files) {
 
     const encryptedData = btoa(String.fromCharCode.apply(null, combinedData));
 
-    formData.append('manifest', encryptedData);
+    data.manifest = encryptedData;
 
     fetch('/upload', {
         method: 'POST',
-        body: formData
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
     })
         .then(response => {
             if (response.status == 400) {
@@ -337,6 +444,16 @@ async function uploadFiles(files) {
                 document.getElementById("uploaded-files").innerHTML = generateTableContent('');
             }
         });
+}
+
+async function getFileHash(file) {
+    const buffer = await file.arrayBuffer();
+    const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+    const promiseArray = Array.from(new Uint8Array(hashBuffer)); 
+    const hash = promiseArray
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+    return hash;
 }
 
 function generateFromManifest(manifest) {
