@@ -4,6 +4,7 @@ from datetime import timedelta
 from app.auth.login import authLogin
 from app.auth.signup import createUser
 from app.utils.fileSaver import saveContent
+from app.utils.challengeHelper import getChallenge,validateSolution
 
 application = Flask(__name__)
 application.secret_key = configs.SECRET_KEY
@@ -60,7 +61,9 @@ def uploadContents():
         return jsonify(), 401
     files = inbound['files']
     manifest = inbound['manifest']
-    opResult = saveContent(files,session.get('username'),manifest)
+    challenge = inbound['challenge']
+    solution = inbound['solution']
+    opResult = saveContent(files,session.get('username'),manifest,challenge,solution)
     if opResult:
         return jsonify(), 200
     else:
@@ -89,14 +92,21 @@ def getManifest():
     con = ''.join(con)
     return jsonify(con),200
 
-@application.route("/resource/<string:resource>")
+@application.route("/resource/<string:resource>",methods=['POST'])
 def sendResource(resource):
     if session.get("username") != None:
-        file = "{}{}".format(configs.STORAGE_DIR,resource)
-        with open(file,'r') as f:
-            contents = f.read()
-            f.close()
-        return jsonify({"content":contents}),200
+        data = request.json
+        if data.get("solution") == '':
+            return jsonify({"challenge":getChallenge(resource)}),200
+        solution = data["solution"]
+        if validateSolution(resource,solution):
+            file = "{}{}".format(configs.STORAGE_DIR,resource)
+            with open(file,'r') as f:
+                contents = f.read()
+                f.close()
+            return jsonify({"content":contents}),200
+        else:
+            return jsonify({}),403
     else:
         return jsonify(),403
 

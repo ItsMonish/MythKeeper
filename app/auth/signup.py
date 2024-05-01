@@ -4,14 +4,13 @@ from Crypto.Random import get_random_bytes
 from re import match
 from config import configs
 from os.path import join
-from json import dump
 
 pattern = r'^[a-z][a-z0-9]*$'
 
 def createUser(userName,password,manifest):
     if not match(pattern,userName):
         return {"status":"invalidUsername"}
-    con, dbCursor = getDatabaseCursor("creds.db")
+    con, dbCursor = getDatabaseCursor()
     rec = dbCursor.execute("SELECT * FROM credentials WHERE username = ?",(userName,)).fetchone()
     if rec != None:
         return {"status":"duplicate"}

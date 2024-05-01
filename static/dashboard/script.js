@@ -20,11 +20,8 @@ window.onload = function() {
     .then(encryptedData => {
         encryptedData = encryptedData.substring(1,encryptedData.length-2)
         const key = sessionStorage.getItem("localpass");
-        const combinedData = atob(encryptedData);
-        const iv = combinedData.slice(0, 16); 
-        const encryptedManifest = combinedData.slice(16);
         
-        return decryptData(encryptedManifest, key, iv);
+        return decryptData(encryptedData, key);
     })
     .then(decryptedManifest => {
         sessionStorage.setItem("manifest", decryptedManifest);
@@ -45,31 +42,31 @@ function hexStringToUint8Array(hexString) {
     return uint8Array;
 }
 
-async function decryptData(encryptedData, key, iv) {
+async function decryptData(encryptedData, key) {
+    const combinedData = atob(encryptedData);
+    const iv = combinedData.slice(0, 16); 
+    const encrypted = combinedData.slice(16);
     const decodedKey = await window.crypto.subtle.importKey(
         "raw",
         hexStringToUint8Array(key),
-        { name: "AES-CBC" },
+        { name: 'AES-CBC' },
         false,
         ["decrypt"]
     );
-    
+
     const decodedIV = new Uint8Array(iv.length);
     for (let i = 0; i < iv.length; i++) {
         decodedIV[i] = iv.charCodeAt(i);
     }
-    
-    const decodedData = Uint8Array.from(encryptedData, c => c.charCodeAt(0));
-    
+    const decodedData = Uint8Array.from(encrypted, c => c.charCodeAt(0));
     const decryptedBuffer = await window.crypto.subtle.decrypt(
         {
-            name: "AES-CBC",
+            name: 'AES-CBC',
             iv: decodedIV
         },
         decodedKey,
         decodedData
-        );
-
+    );
     const decoder = new TextDecoder();
     const decryptedString = decoder.decode(decryptedBuffer);
 
@@ -77,25 +74,68 @@ async function decryptData(encryptedData, key, iv) {
 }
 
 
+async function solveChallenge(challenge, resource) {
+    const detes = getFromManifest(resource);
+    const key = await genKey(detes[0],detes[1]);
+    console.log(key)
+    const sol = await decryptData(challenge,key);
+    console.log(sol)
+    return sol;
+}
+
+
 async function download(resource, filePath) {
+    let challenge;
+    data = {
+        'solution': ''
+    }
     showConfirm("Do you want to download this file?", "Download").then(response => {
         if(response) {
-            fetch(`/resource/${resource}`)
+            fetch(`/resource/${resource}`,{
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
             .then(response => {
-                if(response.status != 200) {
-                    alert("Download failed. Try again");
+                if (response.status == 401) {
+                    alert("Invalid access to the file");
                     return;
                 }
                 return response.json();
             })
             .then(jsonContent => {
-                return decryptFile(jsonContent['content'],resource);
-            }).then(decryptedBuffer => {
-                const decryptedBlob = new Blob([decryptedBuffer], { type: 'application/octet-stream' });    
-                const downloadLink = document.createElement('a');
-                downloadLink.href = window.URL.createObjectURL(decryptedBlob);
-                downloadLink.download = filePath; 
-                downloadLink.click();
+                challenge = jsonContent['challenge'];
+                return solveChallenge(challenge, resource);
+            })
+            .then(sol => {
+                data['solution'] = sol;
+                return data;
+            }).then(data => {
+                fetch(`/resource/${resource}`,{
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                })
+                .then(response => {
+                    if(response.status != 200) {
+                        alert("Download failed. Try again");
+                        return;
+                    }
+                    return response.json();
+                })
+                .then(jsonContent => {
+                    return decryptFile(jsonContent['content'],resource);
+                }).then(decryptedBuffer => {
+                    const decryptedBlob = new Blob([decryptedBuffer], { type: 'application/octet-stream' });    
+                    const downloadLink = document.createElement('a');
+                    downloadLink.href = window.URL.createObjectURL(decryptedBlob);
+                    downloadLink.download = filePath; 
+                    downloadLink.click();
+                });
             });
         }
     });
@@ -315,8 +355,8 @@ function generateManifest(originalFileNames, renamedFiles, jsonData) {
     return jsonString;
 }
 
-function generateSalt() {
-    const saltArray = new Uint8Array(8);
+function generateRandom(length) {
+    const saltArray = new Uint8Array(length);
     crypto.getRandomValues(saltArray);
     return Array.from(saltArray, byte => ('0' + (byte & 0xFF).toString(16)).slice(-2)).join('');
 }
@@ -335,7 +375,11 @@ async function genKey(fileHash, salt) {
 
 async function encryptFile(file, key) {
     const iv = crypto.getRandomValues(new Uint8Array(16));
+    const newIV = crypto.getRandomValues(new Uint8Array(16));
     const fileBuffer = await file.arrayBuffer();
+    const solution = generateRandom(16);
+    const encoder = new TextEncoder();
+    const encSolution = encoder.encode(solution);
     const cryptoKey = await window.crypto.subtle.importKey(
         "raw",
         hexStringToUint8Array(key),
@@ -351,11 +395,26 @@ async function encryptFile(file, key) {
         cryptoKey,
         fileBuffer
     );
+    const challengeBuffer = await crypto.subtle.encrypt(
+        {
+            name: "AES-CBC",
+            iv: newIV
+        },
+        cryptoKey,
+        encSolution
+    );
+
     const combinedData = new Uint8Array(iv.byteLength + encryptedFileBuffer.byteLength);
     combinedData.set(iv, 0);
     combinedData.set(new Uint8Array(encryptedFileBuffer), iv.byteLength);
+
+    const combinedChallenge = new Uint8Array(newIV.byteLength + challengeBuffer.byteLength);
+    combinedChallenge.set(newIV, 0);
+    combinedChallenge.set(new Uint8Array(challengeBuffer), newIV.byteLength);
+
+    const challenge = btoa(String.fromCharCode.apply(null, combinedChallenge));
     const encFile = btoa(String.fromCharCode.apply(null, combinedData));
-    return encFile;
+    return [encFile, solution, challenge];
 }
 
 async function logout() {
@@ -378,18 +437,19 @@ async function uploadFiles(files) {
     const originalFileNames = [];
     const data = {};
     data.files = [];
+    let fileContents = [];
 
     for (const file of files) {
         const gen = genResName();
         const fileHash = await getFileHash(file);
-        const salt = generateSalt();
+        const salt = generateRandom(8);
         const encKey = await genKey(fileHash,salt);
         const renamedFile = new File([file], gen, { type: file.type });
         renamedFiles.push([renamedFile,fileHash,salt]);
         if (file.webkitRelativePath == "") originalFileNames.push(file.name)
         else originalFileNames.push(file.webkitRelativePath);
-        const encryptedFile = await encryptFile(renamedFile,encKey);
-        data.files.push({'file': encryptedFile, 'resource': gen});
+        fileContents = await encryptFile(renamedFile,encKey);
+        data.files.push({'file': fileContents[0], 'resource': gen});
     }
 
     let jsonData = JSON.parse(sessionStorage.getItem("manifest"));
@@ -423,6 +483,8 @@ async function uploadFiles(files) {
     const encryptedData = btoa(String.fromCharCode.apply(null, combinedData));
 
     data.manifest = encryptedData;
+    data.solution = fileContents[1];
+    data.challenge = fileContents[2];
 
     fetch('/upload', {
         method: 'POST',
