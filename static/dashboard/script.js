@@ -142,6 +142,44 @@ async function deleteRes(resource) {
         });
 }
 
+async function deleteAccount() {
+    showConfirm("Are you sure to delete the account? All files will be deleted and this action is irreversible", "Delete")
+        .then(answer => {
+            if (answer) {
+                let data = {
+                    "resList": []
+                };
+                const manifest = JSON.parse(sessionStorage.getItem("manifest"));
+                for (let file of manifest["root"]) {
+                    data['resList'].push(file["resource"]);
+                }
+                fetch("/deleteAccount", {
+                    method: 'POST',
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(data)
+                })
+                    .then(response => {
+                        if (response.status == 403) {
+                            alert("Invalid Action");
+                            return;
+                        } else if (response.status != 200) {
+                            alert("Something went wrong. Try again");
+                            return;
+                        } else {
+                            alert("Account deleted successfully. You will be redirected to the login page");
+                            sessionStorage.removeItem("un");
+                            sessionStorage.removeItem("manifest");
+                            sessionStorage.removeItem("localpass");
+                            window.location.href = "/";
+                            return;
+                        }
+                    })
+            }
+        });
+}
+
 function deleteFromManifest(resource) {
     manifest = sessionStorage.getItem("manifest");
     manifest = JSON.parse(manifest);

@@ -12,6 +12,7 @@ from config import configs
 from datetime import timedelta
 from app.auth.login import authLogin
 from app.auth.signup import createUser
+from app.utils.accountDelete import accountDeleteSequence
 from app.utils.deleteHelper import deletionSeq
 from app.utils.fileSaver import saveContent
 from app.utils.challengeHelper import getChallenge, validateSolution
@@ -148,6 +149,18 @@ def deleteResource(resource):
             return jsonify({}), 403
     else:
         return jsonify({}), 403
+
+
+@application.route("/deleteAccount", methods=["POST"])
+def deleteAccount():
+    owner = session.get("username")
+    if owner != None:
+        data = request.json
+        resources = data["resList"]
+        accountDeleteSequence(owner, resources)
+        return jsonify({}), 200
+    else:
+        return jsonify({}), 203
 
 
 @application.route("/dashboard")
