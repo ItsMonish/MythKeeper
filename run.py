@@ -3,6 +3,7 @@ from config import configs
 from datetime import timedelta
 from app.auth.login import authLogin
 from app.auth.signup import createUser
+from app.utils.deleteHelper import deletionSeq
 from app.utils.fileSaver import saveContent
 from app.utils.challengeHelper import getChallenge,validateSolution
 
@@ -109,6 +110,22 @@ def sendResource(resource):
             return jsonify({}),403
     else:
         return jsonify(),403
+    
+@application.route("/delete/<string:resource>",methods=['POST'])
+def deleteResource(resource):
+    if session.get("username") != None:
+        data = request.json
+        if data.get("solution") == '':
+            return jsonify({"challenge":getChallenge(resource)}),200
+        solution = data["solution"]
+        manifest = data["manifest"]
+        if validateSolution(resource,solution):
+            deletionSeq(resource,manifest,session.get("username"))
+            return jsonify({}),200
+        else:
+            return jsonify({}),403
+    else:
+        return jsonify({}),403
 
 @application.route("/dashboard")
 def testDash():

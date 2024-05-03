@@ -77,20 +77,91 @@ async function decryptData(encryptedData, key) {
 async function solveChallenge(challenge, resource) {
     const detes = getFromManifest(resource);
     const key = await genKey(detes[0],detes[1]);
-    console.log(key)
     const sol = await decryptData(challenge,key);
-    console.log(sol)
     return sol;
 }
 
+async function deleteRes(resource) {
+    let challenge;
+    data = {
+        'solution': '',
+        'manifest': ''
+    }
+    showConfirm("Are you sure you want to delete this file?", "Delete")
+    .then(answer => {
+        if (answer) {
+            fetch(`/delete/${resource}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => {
+                if(response.status == 403) {
+                    alert("Invalid operation");
+                    return;
+                }
+                return response.json();
+            })
+            .then(jsonContent => {
+                challenge = jsonContent['challenge'];
+                return solveChallenge(challenge,resource);
+            })
+            .then(sol => {
+                data['solution'] = sol;
+                modManifest = deleteFromManifest(resource);
+                encryptManifest(modManifest)
+                .then(encManifest => {
+                    data['manifest'] = encManifest;
+                    return data;
+                })
+                .then(data => {
+                    fetch(`/delete/${resource}`,{
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(data)
+                    })
+                    .then (response => {
+                        if (response.status == 403) {
+                            alert("Invalid operation on file");
+                            return;
+                        } else if(response.status != 200) {
+                            alert("Operation failed. Try again");
+                            return;
+                        } else {
+                            showNotification("Success","File deleted successfully");
+                            document.getElementById("uploaded-files").innerHTML = generateTableContent('');
+                        }
+                    });
+                });
+            })
+        }
+    });
+}
+
+function deleteFromManifest(resource) {
+    manifest = sessionStorage.getItem("manifest");
+    manifest = JSON.parse(manifest);
+    for(let i in manifest['root']) {
+        if(manifest['root'][i]['resource'] == resource) {
+            manifest['root'].splice(i,1);
+        }
+    }
+    manifest = JSON.stringify(manifest)
+    sessionStorage.setItem("manifest",manifest);
+    return manifest;
+}
 
 async function download(resource, filePath) {
     let challenge;
     data = {
         'solution': ''
     }
-    showConfirm("Do you want to download this file?", "Download").then(response => {
-        if(response) {
+    showConfirm("Do you want to download this file?", "Download").then(answer => {
+        if(answer) {
             fetch(`/resource/${resource}`,{
                 method: 'POST',
                 headers: {
@@ -99,7 +170,7 @@ async function download(resource, filePath) {
                 body: JSON.stringify(data)
             })
             .then(response => {
-                if (response.status == 401) {
+                if (response.status == 403) {
                     alert("Invalid access to the file");
                     return;
                 }
@@ -252,12 +323,13 @@ function generateTableContent(depth) {
     }
     for (let fileData of list) {
         if (fileData[1] != '')
-            genHTML += `<tr onclick="download('${fileData[2]}','${fileData[3]?fileData[3]: fileData[0]}');">
+            genHTML += `<tr ondblclick="download('${fileData[2]}','${fileData[3]?fileData[3]: fileData[0]}');">
                             <td>${getIcon(fileData[1])}</td>
                             <td>${fileData[0]}</td>
                             <td>${getNiceTime(fileData[2].split('_')[0])}</td>
                             <td>${getNiceSize(fileData[1])}</td>
-                            <td><i class="fa fa-ellipsis-v" aria-hidden="true"></i></td>
+                            <td><button class="sharing">Sharing</button></td>
+                            <td onclick="deleteRes('${fileData[2]}');"><i class="fa fa-trash-o" aria-hidden="true"></i></td>
                         </tr>`;
     }
     return genHTML;
@@ -431,30 +503,7 @@ async function logout() {
     });
 }
 
-
-async function uploadFiles(files) {
-    const renamedFiles = [];
-    const originalFileNames = [];
-    const data = {};
-    data.files = [];
-    let fileContents = [];
-
-    for (const file of files) {
-        const gen = genResName();
-        const fileHash = await getFileHash(file);
-        const salt = generateRandom(8);
-        const encKey = await genKey(fileHash,salt);
-        const renamedFile = new File([file], gen, { type: file.type });
-        renamedFiles.push([renamedFile,fileHash,salt]);
-        if (file.webkitRelativePath == "") originalFileNames.push(file.name)
-        else originalFileNames.push(file.webkitRelativePath);
-        fileContents = await encryptFile(renamedFile,encKey);
-        data.files.push({'file': fileContents[0], 'resource': gen});
-    }
-
-    let jsonData = JSON.parse(sessionStorage.getItem("manifest"));
-    let manifest = generateManifest(originalFileNames, renamedFiles, jsonData);
-
+async function encryptManifest(manifest) {
     const hashLock = sessionStorage.getItem("localpass");
     const encoder = new TextEncoder();
     const manifestBuffer = encoder.encode(manifest);
@@ -481,8 +530,33 @@ async function uploadFiles(files) {
     combinedData.set(new Uint8Array(encryptedManifest), iv.byteLength);
 
     const encryptedData = btoa(String.fromCharCode.apply(null, combinedData));
+    return encryptedData;
+}
 
-    data.manifest = encryptedData;
+async function uploadFiles(files) {
+    const renamedFiles = [];
+    const originalFileNames = [];
+    const data = {};
+    data.files = [];
+    let fileContents = [];
+
+    for (const file of files) {
+        const gen = genResName();
+        const fileHash = await getFileHash(file);
+        const salt = generateRandom(8);
+        const encKey = await genKey(fileHash,salt);
+        const renamedFile = new File([file], gen, { type: file.type });
+        renamedFiles.push([renamedFile,fileHash,salt]);
+        if (file.webkitRelativePath == "") originalFileNames.push(file.name)
+        else originalFileNames.push(file.webkitRelativePath);
+        fileContents = await encryptFile(renamedFile,encKey);
+        data.files.push({'file': fileContents[0], 'resource': gen});
+    }
+
+    let jsonData = JSON.parse(sessionStorage.getItem("manifest"));
+    let manifest = generateManifest(originalFileNames, renamedFiles, jsonData);
+
+    data.manifest = await encryptManifest(manifest);
     data.solution = fileContents[1];
     data.challenge = fileContents[2];
 
