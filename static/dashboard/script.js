@@ -4,32 +4,32 @@ document.getElementById('fileInput').addEventListener('change', function () {
 
 });
 
-window.onload = function() {
+window.onload = function () {
     fetch("/manifest")
-    .then(response => {
-        if(response.status === 200) return response.text();
-        else if(response.status === 403) {
-            alert("Unauthorized. Login in and try again");
-            window.location.href = "/";
-            throw new Error("Unauthorized");
-        } else {
-            alert("Sorry something went wrong");
-            throw new Error("Something went wrong");
-        }
-    })
-    .then(encryptedData => {
-        encryptedData = encryptedData.substring(1,encryptedData.length-2)
-        const key = sessionStorage.getItem("localpass");
-        
-        return decryptData(encryptedData, key);
-    })
-    .then(decryptedManifest => {
-        sessionStorage.setItem("manifest", decryptedManifest);
-        document.getElementById("uploaded-files").innerHTML = generateTableContent('');
-    })
-    .catch(error => {
-        console.error(error);
-    });
+        .then(response => {
+            if (response.status === 200) return response.text();
+            else if (response.status === 403) {
+                alert("Unauthorized. Login in and try again");
+                window.location.href = "/";
+                throw new Error("Unauthorized");
+            } else {
+                alert("Sorry something went wrong");
+                throw new Error("Something went wrong");
+            }
+        })
+        .then(encryptedData => {
+            encryptedData = encryptedData.substring(1, encryptedData.length - 2)
+            const key = sessionStorage.getItem("localpass");
+
+            return decryptData(encryptedData, key);
+        })
+        .then(decryptedManifest => {
+            sessionStorage.setItem("manifest", decryptedManifest);
+            document.getElementById("uploaded-files").innerHTML = generateTableContent('');
+        })
+        .catch(error => {
+            console.error(error);
+        });
 }
 
 function hexStringToUint8Array(hexString) {
@@ -44,7 +44,7 @@ function hexStringToUint8Array(hexString) {
 
 async function decryptData(encryptedData, key) {
     const combinedData = atob(encryptedData);
-    const iv = combinedData.slice(0, 16); 
+    const iv = combinedData.slice(0, 16);
     const encrypted = combinedData.slice(16);
     const decodedKey = await window.crypto.subtle.importKey(
         "raw",
@@ -76,8 +76,8 @@ async function decryptData(encryptedData, key) {
 
 async function solveChallenge(challenge, resource) {
     const detes = getFromManifest(resource);
-    const key = await genKey(detes[0],detes[1]);
-    const sol = await decryptData(challenge,key);
+    const key = await genKey(detes[0], detes[1]);
+    const sol = await decryptData(challenge, key);
     return sol;
 }
 
@@ -88,70 +88,70 @@ async function deleteRes(resource) {
         'manifest': ''
     }
     showConfirm("Are you sure you want to delete this file?", "Delete")
-    .then(answer => {
-        if (answer) {
-            fetch(`/delete/${resource}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(data)
-            })
-            .then(response => {
-                if(response.status == 403) {
-                    alert("Invalid operation");
-                    return;
-                }
-                return response.json();
-            })
-            .then(jsonContent => {
-                challenge = jsonContent['challenge'];
-                return solveChallenge(challenge,resource);
-            })
-            .then(sol => {
-                data['solution'] = sol;
-                modManifest = deleteFromManifest(resource);
-                encryptManifest(modManifest)
-                .then(encManifest => {
-                    data['manifest'] = encManifest;
-                    return data;
+        .then(answer => {
+            if (answer) {
+                fetch(`/delete/${resource}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
                 })
-                .then(data => {
-                    fetch(`/delete/${resource}`,{
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify(data)
-                    })
-                    .then (response => {
+                    .then(response => {
                         if (response.status == 403) {
-                            alert("Invalid operation on file");
+                            alert("Invalid operation");
                             return;
-                        } else if(response.status != 200) {
-                            alert("Operation failed. Try again");
-                            return;
-                        } else {
-                            showNotification("Success","File deleted successfully");
-                            document.getElementById("uploaded-files").innerHTML = generateTableContent('');
                         }
-                    });
-                });
-            })
-        }
-    });
+                        return response.json();
+                    })
+                    .then(jsonContent => {
+                        challenge = jsonContent['challenge'];
+                        return solveChallenge(challenge, resource);
+                    })
+                    .then(sol => {
+                        data['solution'] = sol;
+                        modManifest = deleteFromManifest(resource);
+                        encryptManifest(modManifest)
+                            .then(encManifest => {
+                                data['manifest'] = encManifest;
+                                return data;
+                            })
+                            .then(data => {
+                                fetch(`/delete/${resource}`, {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json'
+                                    },
+                                    body: JSON.stringify(data)
+                                })
+                                    .then(response => {
+                                        if (response.status == 403) {
+                                            alert("Invalid operation on file");
+                                            return;
+                                        } else if (response.status != 200) {
+                                            alert("Operation failed. Try again");
+                                            return;
+                                        } else {
+                                            showNotification("Success", "File deleted successfully");
+                                            document.getElementById("uploaded-files").innerHTML = generateTableContent('');
+                                        }
+                                    });
+                            });
+                    })
+            }
+        });
 }
 
 function deleteFromManifest(resource) {
     manifest = sessionStorage.getItem("manifest");
     manifest = JSON.parse(manifest);
-    for(let i in manifest['root']) {
-        if(manifest['root'][i]['resource'] == resource) {
-            manifest['root'].splice(i,1);
+    for (let i in manifest['root']) {
+        if (manifest['root'][i]['resource'] == resource) {
+            manifest['root'].splice(i, 1);
         }
     }
     manifest = JSON.stringify(manifest)
-    sessionStorage.setItem("manifest",manifest);
+    sessionStorage.setItem("manifest", manifest);
     return manifest;
 }
 
@@ -161,58 +161,58 @@ async function download(resource, filePath) {
         'solution': ''
     }
     showConfirm("Do you want to download this file?", "Download").then(answer => {
-        if(answer) {
-            fetch(`/resource/${resource}`,{
+        if (answer) {
+            fetch(`/resource/${resource}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(data)
             })
-            .then(response => {
-                if (response.status == 403) {
-                    alert("Invalid access to the file");
-                    return;
-                }
-                return response.json();
-            })
-            .then(jsonContent => {
-                challenge = jsonContent['challenge'];
-                return solveChallenge(challenge, resource);
-            })
-            .then(sol => {
-                data['solution'] = sol;
-                return data;
-            }).then(data => {
-                fetch(`/resource/${resource}`,{
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(data)
-                })
                 .then(response => {
-                    if(response.status != 200) {
-                        alert("Download failed. Try again");
+                    if (response.status == 403) {
+                        alert("Invalid access to the file");
                         return;
                     }
                     return response.json();
                 })
                 .then(jsonContent => {
-                    return decryptFile(jsonContent['content'],resource);
-                }).then(decryptedBuffer => {
-                    const decryptedBlob = new Blob([decryptedBuffer], { type: 'application/octet-stream' });    
-                    const downloadLink = document.createElement('a');
-                    downloadLink.href = window.URL.createObjectURL(decryptedBlob);
-                    downloadLink.download = filePath; 
-                    downloadLink.click();
+                    challenge = jsonContent['challenge'];
+                    return solveChallenge(challenge, resource);
+                })
+                .then(sol => {
+                    data['solution'] = sol;
+                    return data;
+                }).then(data => {
+                    fetch(`/resource/${resource}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(data)
+                    })
+                        .then(response => {
+                            if (response.status != 200) {
+                                alert("Download failed. Try again");
+                                return;
+                            }
+                            return response.json();
+                        })
+                        .then(jsonContent => {
+                            return decryptFile(jsonContent['content'], resource);
+                        }).then(decryptedBuffer => {
+                            const decryptedBlob = new Blob([decryptedBuffer], { type: 'application/octet-stream' });
+                            const downloadLink = document.createElement('a');
+                            downloadLink.href = window.URL.createObjectURL(decryptedBlob);
+                            downloadLink.download = filePath;
+                            downloadLink.click();
+                        });
                 });
-            });
         }
     });
 }
 
-async function decryptFile(content,resource) {
+async function decryptFile(content, resource) {
     const encryptedData = atob(content);
     const combinedData = new Uint8Array(encryptedData.length);
     for (let i = 0; i < encryptedData.length; ++i) {
@@ -221,7 +221,7 @@ async function decryptFile(content,resource) {
     const iv = combinedData.slice(0, 16);
     const encryptedDataBuffer = combinedData.slice(16);
     const detes = getFromManifest(resource);
-    const key = await genKey(detes[0],detes[1])
+    const key = await genKey(detes[0], detes[1])
     const decodedKey = await window.crypto.subtle.importKey(
         "raw",
         hexStringToUint8Array(key),
@@ -243,9 +243,9 @@ async function decryptFile(content,resource) {
 function getFromManifest(resource) {
     manifest = sessionStorage.getItem("manifest");
     manifest = JSON.parse(manifest);
-    for(const file of manifest['root']) {
-        if(file['resource'] == resource) {
-            return [file['hash'],file['salt']];
+    for (const file of manifest['root']) {
+        if (file['resource'] == resource) {
+            return [file['hash'], file['salt']];
         }
     }
 }
@@ -313,7 +313,7 @@ function generateTableContent(depth) {
     list = getFilesFromManifest(depth);
     genHTML = ""
     if (list.length == 0) {
-        genHTML =   `<tr>
+        genHTML = `<tr>
                         <td></td>
                         <td><p>Looks like there are no files uploaded</p></td>
                         <td></td>
@@ -323,7 +323,7 @@ function generateTableContent(depth) {
     }
     for (let fileData of list) {
         if (fileData[1] != '')
-            genHTML += `<tr ondblclick="download('${fileData[2]}','${fileData[3]?fileData[3]: fileData[0]}');">
+            genHTML += `<tr ondblclick="download('${fileData[2]}','${fileData[3] ? fileData[3] : fileData[0]}');">
                             <td>${getIcon(fileData[1])}</td>
                             <td>${fileData[0]}</td>
                             <td>${getNiceTime(fileData[2].split('_')[0])}</td>
@@ -336,7 +336,7 @@ function generateTableContent(depth) {
 }
 
 function getIcon(size) {
-    if(size != '') return '<i class="fa fa-file" aria-hidden="true"></i>'
+    if (size != '') return '<i class="fa fa-file" aria-hidden="true"></i>'
     else return '<i class="fa fa-folder" aria-hidden="true"></i>'
 }
 
@@ -369,7 +369,7 @@ function getNiceTime(timestamp) {
     const minutes = timestamp.slice(10, 12);
     const seconds = timestamp.slice(12, 14);
 
-    return new Date(year,month,day,hours,minutes,seconds).toLocaleString();
+    return new Date(year, month, day, hours, minutes, seconds).toLocaleString();
 }
 
 function getNiceSize(bytes, decimals = 2) {
@@ -436,12 +436,12 @@ function generateRandom(length) {
 async function genKey(fileHash, salt) {
     const localPass = sessionStorage.getItem("localpass")
     const text = fileHash + salt + localPass;
-    const encTxt = new TextEncoder().encode(text); 
-    const hashPromise = await crypto.subtle.digest("SHA-256", encTxt); 
-    const promiseArray = Array.from(new Uint8Array(hashPromise)); 
+    const encTxt = new TextEncoder().encode(text);
+    const hashPromise = await crypto.subtle.digest("SHA-256", encTxt);
+    const promiseArray = Array.from(new Uint8Array(hashPromise));
     const hash = promiseArray
-      .map((b) => b.toString(16).padStart(2, "0"))
-      .join("");
+        .map((b) => b.toString(16).padStart(2, "0"))
+        .join("");
     return hash;
 }
 
@@ -491,16 +491,16 @@ async function encryptFile(file, key) {
 
 async function logout() {
     fetch("/logout")
-    .then(response => {
-        if(response.status == 200) {
-            sessionStorage.removeItem("un");
-            sessionStorage.removeItem("localpass");
-            sessionStorage.removeItem("manifest");
-            window.location.href = "/";
-        } else {
-            alert("Logout failed try again");
-        }
-    });
+        .then(response => {
+            if (response.status == 200) {
+                sessionStorage.removeItem("un");
+                sessionStorage.removeItem("localpass");
+                sessionStorage.removeItem("manifest");
+                window.location.href = "/";
+            } else {
+                alert("Logout failed try again");
+            }
+        });
 }
 
 async function encryptManifest(manifest) {
@@ -515,7 +515,7 @@ async function encryptManifest(manifest) {
         false,
         ["encrypt"]
     );
-    const iv = window.crypto.getRandomValues(new Uint8Array(16)); 
+    const iv = window.crypto.getRandomValues(new Uint8Array(16));
     const encryptedManifest = await window.crypto.subtle.encrypt(
         {
             name: "AES-CBC",
@@ -544,13 +544,13 @@ async function uploadFiles(files) {
         const gen = genResName();
         const fileHash = await getFileHash(file);
         const salt = generateRandom(8);
-        const encKey = await genKey(fileHash,salt);
+        const encKey = await genKey(fileHash, salt);
         const renamedFile = new File([file], gen, { type: file.type });
-        renamedFiles.push([renamedFile,fileHash,salt]);
+        renamedFiles.push([renamedFile, fileHash, salt]);
         if (file.webkitRelativePath == "") originalFileNames.push(file.name)
         else originalFileNames.push(file.webkitRelativePath);
-        fileContents = await encryptFile(renamedFile,encKey);
-        data.files.push({'file': fileContents[0], 'resource': gen});
+        fileContents = await encryptFile(renamedFile, encKey);
+        data.files.push({ 'file': fileContents[0], 'resource': gen });
     }
 
     let jsonData = JSON.parse(sessionStorage.getItem("manifest"));
@@ -575,7 +575,7 @@ async function uploadFiles(files) {
             } else if (response.status == 500) {
                 showNotification("Failure", "An unexpected error occurred");
             } else if (response.status == 200) {
-                sessionStorage.setItem("manifest",manifest);
+                sessionStorage.setItem("manifest", manifest);
                 showNotification("Success", "Upload completed successfully");
                 document.getElementById("uploaded-files").innerHTML = generateTableContent('');
             }
@@ -585,10 +585,10 @@ async function uploadFiles(files) {
 async function getFileHash(file) {
     const buffer = await file.arrayBuffer();
     const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
-    const promiseArray = Array.from(new Uint8Array(hashBuffer)); 
+    const promiseArray = Array.from(new Uint8Array(hashBuffer));
     const hash = promiseArray
-      .map((b) => b.toString(16).padStart(2, "0"))
-      .join("");
+        .map((b) => b.toString(16).padStart(2, "0"))
+        .join("");
     return hash;
 }
 

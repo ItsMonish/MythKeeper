@@ -1,166 +1,167 @@
 body {
-    font-family: Arial, sans-serif;
-    background-color: #f4f4f4;
-    margin: 0;
-    padding: 0;
+  font-family: Arial, sans-serif;
+  background-color: #f4f4f4;
+  margin: 0;
+  padding: 0;
 }
 
 .container {
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 20px;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
 }
 
 header {
-    background-color: #007bff;
-    color: #fff;
-    padding: 10px 0;
+  background-color: #007bff;
+  color: #fff;
+  padding: 10px 0;
 }
 
 header h1 {
-    margin: 0;
+  margin: 0;
 }
 
 nav ul {
-    list-style-type: none;
-    margin: 0;
-    padding: 0;
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
 }
 
 nav ul li {
-    display: inline;
-    margin-left: 20px;
+  display: inline;
+  margin-left: 20px;
 }
 
 nav ul li a {
-    color: #fff;
-    text-decoration: none;
+  color: #fff;
+  text-decoration: none;
 }
 
 li :hover {
-    text-decoration: underline;
+  text-decoration: underline;
 }
 
 .upload-section {
-    margin-bottom: 20px;
+  margin-bottom: 20px;
 }
 
 .upload-buttons button {
-    padding: 10px 20px;
-    margin-right: 10px;
-    border: none;
-    border-radius: 5px;
-    background-color: #007bff;
-    color: #fff;
-    cursor: pointer;
+  padding: 10px 20px;
+  margin-right: 10px;
+  border: none;
+  border-radius: 5px;
+  background-color: #007bff;
+  color: #fff;
+  cursor: pointer;
 }
 
 .upload-buttons button:hover {
-    background-color: #0056b3;
+  background-color: #0056b3;
 }
 
 .file-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-bottom: 20px;
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 20px;
 }
 
-.file-table th, .file-table td {
-    border-bottom: 1px solid #ccc; /* Only horizontal lines */
-    padding: 8px;
-    text-align: left;
+.file-table th,
+.file-table td {
+  border-bottom: 1px solid #ccc; /* Only horizontal lines */
+  padding: 8px;
+  text-align: left;
 }
 
 .file-table th {
-    background-color: #007bff;
-    color: #fff;
+  background-color: #007bff;
+  color: #fff;
 }
 
 .file-table tbody tr:nth-child(even) {
-    background-color: #f2f2f2;
+  background-color: #f2f2f2;
 }
 
 .file-table tbody tr:hover {
-    background-color: #e0e0e0; 
-    cursor: pointer;
+  background-color: #e0e0e0;
+  cursor: pointer;
 }
 
 .notification {
-    display: none;
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    background-color: #fff;
-    color: #333;
-    padding: 15px;
-    border-radius: 5px;
-    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.5);
-    z-index: 9999;
+  display: none;
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background-color: #fff;
+  color: #333;
+  padding: 15px;
+  border-radius: 5px;
+  box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.5);
+  z-index: 9999;
 }
 
 .notification-title {
-    font-weight: bold;
-    margin-bottom: 5px;
-    display: block;
+  font-weight: bold;
+  margin-bottom: 5px;
+  display: block;
 }
 
 .notification-message {
-    display: block;
+  display: block;
 }
 
 .confirm-box {
-    display: none;
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background-color: #fff;
-    border: 1px solid #ccc;
-    padding: 20px;
-    border-radius: 5px;
-    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.5);
-    z-index: 9999;
+  display: none;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: #fff;
+  border: 1px solid #ccc;
+  padding: 20px;
+  border-radius: 5px;
+  box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.5);
+  z-index: 9999;
 }
 
 .sharing {
-    border: none;
-    border-radius: 5px;
-    background-color: #007bff;
-    color: #fff;
-    cursor: pointer;
-    font-size: 16px;
+  border: none;
+  border-radius: 5px;
+  background-color: #007bff;
+  color: #fff;
+  cursor: pointer;
+  font-size: 16px;
 }
 
 .sharing:hover {
-    background-color: #0056b3;
+  background-color: #0056b3;
 }
 
 #confirmMessage {
-    margin-bottom: 15px;
+  margin-bottom: 15px;
 }
 
 #confirm-content {
-    text-align: center;
-    justify-content: center;
+  text-align: center;
+  justify-content: center;
 }
 
 #confirmButton {
-    background-color: #007bff;
-    color: #fff;
-    margin-right: 10px;
-    border: 2px solid transparent;
-    padding: 4px 15px;
-    border-radius: 3px;
-    cursor: pointer;
-    font-size: 14px;
+  background-color: #007bff;
+  color: #fff;
+  margin-right: 10px;
+  border: 2px solid transparent;
+  padding: 4px 15px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 14px;
 }
 
 #cancelButton {
-    background-color: #dc3545;
-    color: #fff;
-    border: 2px solid transparent;
-    padding: 4px 15px;
-    border-radius: 3px;
-    cursor: pointer;
-    font-size: 14px;
+  background-color: #dc3545;
+  color: #fff;
+  border: 2px solid transparent;
+  padding: 4px 15px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 14px;
 }

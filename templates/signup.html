@@ -1,83 +1,86 @@
 <!DOCTYPE html>
 <html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Login Page</title>
-    <link rel="stylesheet" href="/static/home/style.css">
+    <link rel="stylesheet" href="/static/home/style.css" />
     <script>
-        function revealPass() {
-            const passField = document.getElementById("password");
-            const toType = passField.getAttribute("type") == "password" ? "text" : "password";
-            passField.setAttribute("type", toType);
+      function revealPass() {
+        const passField = document.getElementById("password");
+        const toType =
+          passField.getAttribute("type") == "password" ? "text" : "password";
+        passField.setAttribute("type", toType);
+      }
+      function moveNext() {
+        let pw = document.getElementById("password").value;
+        let confirmpw = document.getElementById("confirmpassword").value;
+        let errTag = document.getElementById("errors");
+        if (pw != confirmpw) {
+          errTag.innerHTML = "<p>Password's don't match</p>";
+          return;
         }
-        function moveNext() {
-            let pw = document.getElementById("password").value;
-            let confirmpw = document.getElementById("confirmpassword").value;
-            let errTag = document.getElementById("errors");
-            if (pw != confirmpw) {
-                errTag.innerHTML = "<p>Password's don't match</p>";
-                return;
-            }
-            let firstFields = document.getElementsByClassName("first");
-            for (let i = 0; i < firstFields.length; i++) {
-                firstFields[i].style.display = "none";
-            }
-            let secondFields = document.getElementsByClassName("second");
-            for (let i = 0; i < secondFields.length; i++) {
-                secondFields[i].style.display = "block";
-            }
+        let firstFields = document.getElementsByClassName("first");
+        for (let i = 0; i < firstFields.length; i++) {
+          firstFields[i].style.display = "none";
         }
+        let secondFields = document.getElementsByClassName("second");
+        for (let i = 0; i < secondFields.length; i++) {
+          secondFields[i].style.display = "block";
+        }
+      }
     </script>
-</head>
+  </head>
 
-<body>
-
+  <body>
     <div class="login-container">
-        <h2>MythKeeper Storage</h2>
-        <h2>Sign Up to {% if name == "" %}
-                            {{ "this" }}
-                        {% else %}
-                            {{ name }}'s 
-                        {% endif %}
-                            hosting</h2>
-        <form id="login-form" onsubmit="signup(event);">
-            <div class="form-group first">
-                <label for="username">Choose a Username</label>
-                <input type="text" id="username" name="username" required>
-            </div>
-            <div class="form-group first">
-                <label for="password">Choose a Password</label>
-                <input type="password" id="password" name="password" required>
-            </div>
-            <div class="form-group first">
-                <label for="confirmpassword">Confirm Password</label>
-                <input type="password" id="confirmpassword" name="password" required>
-            </div>
-            <div class="first" onchange="revealPass();">
-                <label>
-                    <input type="checkbox" id="reveal" name="reveal">Show Password
-                </label>
-            </div>
-            <div class="form-group second" style="display: none;">
-                <label for="localPass">Enter lock password</label>
-                <input type="password" id="localpass" required>
-            </div>
-            <div class="form-group second" style="display: none;">
-                <label for="localPassConfirm">Confirm lock Password</label>
-                <input type="password" id="localpassconfirm" required>
-            </div>
-            <br>
-            <button class="first" id="nextBtn" onclick="moveNext();">Next</button>
-            <button class="second" id="submit" type="submit" style="display: none;">Sign Up</button>
-        </form>
-        <div class="signup-link">
-            <p>Already have credentials? <a href="/">Head here</a></p>
+      <h2>MythKeeper Storage</h2>
+      <h2>
+        Sign Up to {% if name == "" %} {{ "this" }} {% else %} {{ name }}'s {%
+        endif %} hosting
+      </h2>
+      <form id="login-form" onsubmit="signup(event);">
+        <div class="form-group first">
+          <label for="username">Choose a Username</label>
+          <input type="text" id="username" name="username" required />
         </div>
-        <div class="errors" id="errors"></div>
+        <div class="form-group first">
+          <label for="password">Choose a Password</label>
+          <input type="password" id="password" name="password" required />
+        </div>
+        <div class="form-group first">
+          <label for="confirmpassword">Confirm Password</label>
+          <input
+            type="password"
+            id="confirmpassword"
+            name="password"
+            required
+          />
+        </div>
+        <div class="first" onchange="revealPass();">
+          <label>
+            <input type="checkbox" id="reveal" name="reveal" />Show Password
+          </label>
+        </div>
+        <div class="form-group second" style="display: none">
+          <label for="localPass">Enter lock password</label>
+          <input type="password" id="localpass" required />
+        </div>
+        <div class="form-group second" style="display: none">
+          <label for="localPassConfirm">Confirm lock Password</label>
+          <input type="password" id="localpassconfirm" required />
+        </div>
+        <br />
+        <button class="first" id="nextBtn" onclick="moveNext();">Next</button>
+        <button class="second" id="submit" type="submit" style="display: none">
+          Sign Up
+        </button>
+      </form>
+      <div class="signup-link">
+        <p>Already have credentials? <a href="/">Head here</a></p>
+      </div>
+      <div class="errors" id="errors"></div>
     </div>
     <script src="/static/home/login.js"></script>
-</body>
-
+  </body>
 </html>

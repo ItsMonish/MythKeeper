@@ -1,92 +1,91 @@
 <!DOCTYPE html>
 <html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Cloud Storage</title>
-    <link rel="stylesheet" href="/static/dashboard/style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-</head>
+    <link rel="stylesheet" href="/static/dashboard/style.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css"
+    />
+  </head>
 
-<body>
-
+  <body>
     <header>
-        <div class="container">
-            <h1>MythKeeper Storage</h1>
-            <br>
-            <nav>
-                <ul>
-                    <li><a onclick="logout();">Logout</a></li>
-                    <li><a href="#">Change Password</a></li>
-                    <li><a href="#">Delete Account</a></li>
-                </ul>
-            </nav>
-        </div>
+      <div class="container">
+        <h1>MythKeeper Storage</h1>
+        <br />
+        <nav>
+          <ul>
+            <li><a onclick="logout();">Logout</a></li>
+            <li><a href="#">Change Password</a></li>
+            <li><a href="#">Delete Account</a></li>
+          </ul>
+        </nav>
+      </div>
     </header>
 
     <div class="container">
-        <section class="upload-section">
-            <h2>Upload</h2>
-            <div class="upload-buttons">
-                <input type="file" id="fileInput" multiple style="display:none;">
-                <button onclick="document.getElementById('fileInput').click()">Upload File</button>
-            </div>
-        </section>
+      <section class="upload-section">
+        <h2>Upload</h2>
+        <div class="upload-buttons">
+          <input type="file" id="fileInput" multiple style="display: none" />
+          <button onclick="document.getElementById('fileInput').click()">
+            Upload File
+          </button>
+        </div>
+      </section>
 
-        <section class="uploaded-files-section">
-            <h2>Uploaded Files</h2>
-            <table class="file-table">
-                <thead>
-                    <tr>
-                        <th style="width:5%"></th>
-                        <th style="width:45%">File Name</th>
-                        <th style="width:25%">Time of Upload</th>
-                        <th style="width:15%">File Size</th>
-                        <th style="width:10%"></th>
-                        <th style="width:5%"></th>
-                    </tr>
-                </thead>
-                <tbody id="uploaded-files">
-                </tbody>
-            </table>
-        </section>
+      <section class="uploaded-files-section">
+        <h2>Uploaded Files</h2>
+        <table class="file-table">
+          <thead>
+            <tr>
+              <th style="width: 5%"></th>
+              <th style="width: 45%">File Name</th>
+              <th style="width: 25%">Time of Upload</th>
+              <th style="width: 15%">File Size</th>
+              <th style="width: 10%"></th>
+              <th style="width: 5%"></th>
+            </tr>
+          </thead>
+          <tbody id="uploaded-files"></tbody>
+        </table>
+      </section>
 
-        <section class="shared-files-section">
-            <h2>Shared with You</h2>
-            <table class="file-table">
-                <thead>
-                    <tr>
-                        <th style="width:5%"></th>
-                        <th style="width:50%">File Name</th>
-                        <th style="width:30%">Time of Upload</th>
-                        <th style="width:15%">File Size</th>
-                        <th style="width:5%"></th>
-                    </tr>
-                </thead>
-                <tbody id="shared-files">
-                </tbody>
-            </table>
-        </section>
+      <section class="shared-files-section">
+        <h2>Shared with You</h2>
+        <table class="file-table">
+          <thead>
+            <tr>
+              <th style="width: 5%"></th>
+              <th style="width: 50%">File Name</th>
+              <th style="width: 30%">Time of Upload</th>
+              <th style="width: 15%">File Size</th>
+              <th style="width: 5%"></th>
+            </tr>
+          </thead>
+          <tbody id="shared-files"></tbody>
+        </table>
+      </section>
     </div>
 
     <div id="notification" class="notification">
-        <span class="notification-title"></span>
-        <span class="notification-message"></span>
+      <span class="notification-title"></span>
+      <span class="notification-message"></span>
     </div>
 
     <div id="confirmBox" class="confirm-box">
-        <div class="confirm-content">
-            <span id="confirmMessage"></span>
-            <br>
-            <br>
-            <button id="confirmButton">Download</button>
-            <button id="cancelButton">Cancel</button>
-        </div>
+      <div class="confirm-content">
+        <span id="confirmMessage"></span>
+        <br />
+        <br />
+        <button id="confirmButton">Download</button>
+        <button id="cancelButton">Cancel</button>
+      </div>
     </div>
 
-
     <script src="/static/dashboard/script.js"></script>
-</body>
-
+  </body>
 </html>

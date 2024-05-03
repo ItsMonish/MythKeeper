@@ -1,10 +1,10 @@
 async function sha256digest(text) {
-    const encTxt = new TextEncoder().encode(text); 
-    const hashPromise = await crypto.subtle.digest("SHA-256", encTxt); 
-    const promiseArray = Array.from(new Uint8Array(hashPromise)); 
+    const encTxt = new TextEncoder().encode(text);
+    const hashPromise = await crypto.subtle.digest("SHA-256", encTxt);
+    const promiseArray = Array.from(new Uint8Array(hashPromise));
     const hash = promiseArray
-      .map((b) => b.toString(16).padStart(2, "0"))
-      .join("");
+        .map((b) => b.toString(16).padStart(2, "0"))
+        .join("");
     return hash;
 }
 
@@ -26,21 +26,21 @@ async function login(event) {
         },
         body: JSON.stringify(data)
     };
-    fetch("/login",options)
-    .then(response => {
-        if (!response.ok) {
-            throw new error("Response Failed")
-        }
-        return response.text();
-    })
-    .then(data => {
-        sessionStorage.setItem("un",un)
-        sessionStorage.setItem("localpass",hashlocal);
-        window.location.href = data
-    })
-    .catch(error => {
-        alert("There appears to be a problem with contacting server. Try again")
-    });
+    fetch("/login", options)
+        .then(response => {
+            if (!response.ok) {
+                throw new error("Response Failed")
+            }
+            return response.text();
+        })
+        .then(data => {
+            sessionStorage.setItem("un", un)
+            sessionStorage.setItem("localpass", hashlocal);
+            window.location.href = data
+        })
+        .catch(error => {
+            alert("There appears to be a problem with contacting server. Try again")
+        });
 }
 
 function hexStringToUint8Array(hexString) {
@@ -86,7 +86,7 @@ async function signup(event) {
         false,
         ["encrypt"]
     );
-    const iv = window.crypto.getRandomValues(new Uint8Array(16)); 
+    const iv = window.crypto.getRandomValues(new Uint8Array(16));
     const encryptedManifest = await window.crypto.subtle.encrypt(
         {
             name: "AES-CBC",
@@ -105,7 +105,7 @@ async function signup(event) {
     const data = {
         username: un,
         password: hashPw,
-        data: encryptedData 
+        data: encryptedData
     };
 
     const options = {
