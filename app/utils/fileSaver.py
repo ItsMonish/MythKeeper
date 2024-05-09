@@ -24,8 +24,9 @@ def saveContent(
     con.commit()
     return True
 
+
 def writeToManifest(encManifest: str, owner: str) -> None:
     recFile = os.path.join(usrDir, "{}".format(owner))
-    with open(recFile,"w") as f:
+    with open(recFile, "w") as f:
         f.write(encManifest)
     return
