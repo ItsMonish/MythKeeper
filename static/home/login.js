@@ -3,8 +3,8 @@ async function sha256digest(text) {
     const hashPromise = await crypto.subtle.digest("SHA-256", encTxt);
     const promiseArray = Array.from(new Uint8Array(hashPromise));
     const hash = promiseArray
-        .map((b) => b.toString(16).padStart(2, "0"))
-        .join("");
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
     return hash;
 }
 
@@ -42,6 +42,47 @@ async function login(event) {
             alert("There appears to be a problem with contacting server. Try again")
         });
 }
+
+async function generateKeyPair() {
+    const keyPair = await crypto.subtle.generateKey(
+        {
+            name: 'RSA-OAEP',
+            modulusLength: 2048,
+            publicExponent: new Uint8Array([0x01, 0x00, 0x01]),
+            hash: 'SHA-256'
+        },
+        true,
+        ['encrypt', 'decrypt']
+    );
+    const publicKey = await crypto.subtle.exportKey('spki', keyPair.publicKey);
+    const privateKey = await crypto.subtle.exportKey('pkcs8', keyPair.privateKey);
+    return [privateKey, publicKey];
+}
+
+async function encryptPrivateKey(pkey, key) {
+    const cryptoKey = await window.crypto.subtle.importKey(
+        "raw",
+        hexStringToUint8Array(key),
+        { name: "AES-CBC" },
+        false,
+        ["encrypt"]
+    );
+    const iv = crypto.getRandomValues(new Uint8Array(16));
+    const encryptedPrivateKey = await crypto.subtle.encrypt(
+        {
+            name: 'AES-CBC',
+            iv: iv
+        },
+        cryptoKey,
+        pkey
+    );
+    const encryptedPrivateKeyArray = new Uint8Array(iv.length + new Uint8Array(encryptedPrivateKey).length);
+    encryptedPrivateKeyArray.set(iv);
+    encryptedPrivateKeyArray.set(new Uint8Array(encryptedPrivateKey), iv.length);
+    const ePkey = btoa(String.fromCharCode.apply(null, encryptedPrivateKeyArray));
+    return ePkey;
+}
+
 
 function hexStringToUint8Array(hexString) {
     const length = hexString.length / 2;

@@ -19,7 +19,6 @@
         <nav>
           <ul>
             <li><a onclick="logout();">Logout</a></li>
-            <li><a href="#">Change Password</a></li>
             <li><a onclick="deleteAccount();">Delete Account</a></li>
           </ul>
         </nav>
@@ -61,7 +60,7 @@
             <tr>
               <th style="width: 5%"></th>
               <th style="width: 50%">File Name</th>
-              <th style="width: 30%">Time of Upload</th>
+              <th style="width: 30%">Owner</th>
               <th style="width: 15%">File Size</th>
               <th style="width: 5%"></th>
             </tr>
@@ -83,6 +82,23 @@
         <br />
         <button id="confirmButton">Download</button>
         <button id="cancelButton">Cancel</button>
+      </div>
+    </div>
+
+    <div id="shareDialog" class="dialog">
+      <div class="dialog-content">
+        <span class="close">&times;</span>
+        <h2>Share File</h2>
+        <input type="text" id="usernameInput" placeholder="Enter username" />
+        <button id="addBtn">Add</button>
+        <br>
+        <h4 style="text-align: left;">Shared With:</h4>
+        <div id="sharedWith">
+          <table>
+            <tbody id="userList">
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
 

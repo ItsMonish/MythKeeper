@@ -1,7 +1,17 @@
+const closeBtn = document.querySelector(".close");
+const dialog = document.getElementById("shareDialog");
+const usernameInput = document.getElementById("usernameInput");
+const addBtn = document.getElementById("addBtn");
+const sharedWith = document.getElementById("sharedWith");
+
 document.getElementById('fileInput').addEventListener('change', function () {
     const files = this.files;
     uploadFiles(files);
+});
 
+closeBtn.addEventListener("click", () => {
+    dialog.style.display = "none";
+    document.getElementById("userList").innerHTML = "";
 });
 
 window.onload = function () {
@@ -11,10 +21,10 @@ window.onload = function () {
             else if (response.status === 403) {
                 alert("Unauthorized. Login in and try again");
                 window.location.href = "/";
-                throw new Error("Unauthorized");
+                return;
             } else {
                 alert("Sorry something went wrong");
-                throw new Error("Something went wrong");
+                return;
             }
         })
         .then(encryptedData => {
@@ -30,6 +40,120 @@ window.onload = function () {
         .catch(error => {
             console.error(error);
         });
+    fetch("/sharing")
+        .then(response => {
+            if (response.status != 200) return;
+            else return response.json();
+        })
+        .then(jsonContent => {
+            let manifest = sessionStorage.getItem("manifest");
+            manifest = JSON.parse(manifest);
+            manifest["shared"] = jsonContent;
+            sessionStorage.setItem("manifest", JSON.stringify(manifest));
+            document.getElementById("shared-files").innerHTML = generateSharedTableContent(jsonContent);
+        })
+}
+
+function generateSharedTableContent(sharedManifest) {
+    let content = "", fileList = [];
+    if (sharedManifest.length == 0) {
+        content = `<tr>
+                        <td></td>
+                        <td><p>Looks like there are no shared files</p></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                    </tr>`;
+    }
+    for (let file of sharedManifest) {
+        fileList.push([file.name, file.size, file.resource, file.owner]);
+    }
+    for (let fileData of fileList) {
+        content += `<tr ondblclick="sharedDownload('${fileData[2]}','${fileData[0]}');">
+                    <td>${getIcon(1)}</td>
+                    <td>${fileData[0]}</td>
+                    <td>${fileData[3]}</td>
+                    <td>${getNiceSize(fileData[1])}</td>
+                    <td><button class="sharing" style="background-color: #dc3545" onclick="deleteSharing('${fileData[2]}')">Revoke</button></td>
+                </tr>`;
+    }
+    return content;
+}
+
+async function deleteSharing(resource) {
+    const detes = getFromSharedManifest(resource);
+    let data = {
+        "resHash": await sha256digest(resource),
+        "challenge": "",
+        "share": detes[0]
+    };
+    fetch("/revoke", {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    })
+        .then(response => {
+            if (response.ok) return response.json();
+        })
+        .then(jsonContent => {
+            const challenge = jsonContent["challenge"];
+            data["challenge"] = challenge;
+
+            fetch("/revoke", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+                .then(response => {
+                    if (response.ok) showNotification("Success", "Access lost");
+                    else showNotification("Failed", "Something went wrong");
+                })
+        });
+
+}
+
+async function sharedDownload(resource, filePath) {
+    const detes = getFromSharedManifest(resource);
+    const resHash = await sha256digest(resource);
+    let key;
+    let data = {
+        "resHash": resHash,
+        "challenge": '',
+        "share": ''
+    }
+    fetch("/combine", {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    })
+        .then(response => {
+            if (response.ok) return response.json();
+        })
+        .then(jsonContent => {
+            const challenge = jsonContent["challenge"];
+            data["challenge"] = challenge;
+            data["share"] = detes[0];
+            fetch("/combine", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+                .then(response => {
+                    if (response.ok) return response.json();
+                })
+                .then(jsonContent => {
+                    key = jsonContent["key"];
+                    download(resource, filePath, key);
+                })
+        });
 }
 
 function hexStringToUint8Array(hexString) {
@@ -40,6 +164,16 @@ function hexStringToUint8Array(hexString) {
         uint8Array[i] = byteValue;
     }
     return uint8Array;
+}
+
+async function sha256digest(text) {
+    const encTxt = new TextEncoder().encode(text);
+    const hashPromise = await crypto.subtle.digest("SHA-256", encTxt);
+    const promiseArray = Array.from(new Uint8Array(hashPromise));
+    const hash = promiseArray
+        .map((b) => b.toString(16).padStart(2, "0"))
+        .join("");
+    return hash;
 }
 
 async function decryptData(encryptedData, key) {
@@ -73,10 +207,11 @@ async function decryptData(encryptedData, key) {
     return decryptedString;
 }
 
-
-async function solveChallenge(challenge, resource) {
-    const detes = getFromManifest(resource);
-    const key = await genKey(detes[0], detes[1]);
+async function solveChallenge(challenge, resource, key = '') {
+    if (key == '') {
+        const detes = getFromManifest(resource);
+        key = await genKey(detes[0], detes[1]);
+    }
     const sol = await decryptData(challenge, key);
     return sol;
 }
@@ -193,12 +328,13 @@ function deleteFromManifest(resource) {
     return manifest;
 }
 
-async function download(resource, filePath) {
+async function download(resource, filePath, key = '') {
     let challenge;
     data = {
         'solution': ''
     }
     showConfirm("Do you want to download this file?", "Download").then(answer => {
+
         if (answer) {
             fetch(`/resource/${resource}`, {
                 method: 'POST',
@@ -216,7 +352,7 @@ async function download(resource, filePath) {
                 })
                 .then(jsonContent => {
                     challenge = jsonContent['challenge'];
-                    return solveChallenge(challenge, resource);
+                    return solveChallenge(challenge, resource, key);
                 })
                 .then(sol => {
                     data['solution'] = sol;
@@ -237,20 +373,22 @@ async function download(resource, filePath) {
                             return response.json();
                         })
                         .then(jsonContent => {
-                            return decryptFile(jsonContent['content'], resource);
+                            return decryptFile(jsonContent['content'], resource, key);
                         }).then(decryptedBuffer => {
                             const decryptedBlob = new Blob([decryptedBuffer], { type: 'application/octet-stream' });
                             const downloadLink = document.createElement('a');
                             downloadLink.href = window.URL.createObjectURL(decryptedBlob);
                             downloadLink.download = filePath;
                             downloadLink.click();
+
                         });
                 });
         }
+
     });
 }
 
-async function decryptFile(content, resource) {
+async function decryptFile(content, resource, key = '') {
     const encryptedData = atob(content);
     const combinedData = new Uint8Array(encryptedData.length);
     for (let i = 0; i < encryptedData.length; ++i) {
@@ -259,7 +397,7 @@ async function decryptFile(content, resource) {
     const iv = combinedData.slice(0, 16);
     const encryptedDataBuffer = combinedData.slice(16);
     const detes = getFromManifest(resource);
-    const key = await genKey(detes[0], detes[1])
+    if (key == '') key = await genKey(detes[0], detes[1])
     const decodedKey = await window.crypto.subtle.importKey(
         "raw",
         hexStringToUint8Array(key),
@@ -278,12 +416,22 @@ async function decryptFile(content, resource) {
     return decryptedDataBuffer;
 }
 
+function getFromSharedManifest(resource) {
+    manifest = sessionStorage.getItem("manifest");
+    manifest = JSON.parse(manifest);
+    for (const file of manifest['shared']) {
+        if (file['resource'] == resource) {
+            return [file['share'], file['size'], file['name']];
+        }
+    }
+}
+
 function getFromManifest(resource) {
     manifest = sessionStorage.getItem("manifest");
     manifest = JSON.parse(manifest);
     for (const file of manifest['root']) {
         if (file['resource'] == resource) {
-            return [file['hash'], file['salt']];
+            return [file['hash'], file['salt'], file['size'], file['name']];
         }
     }
 }
@@ -311,7 +459,6 @@ async function showConfirm(message, action) {
         confirmBox.style.display = "block";
     });
 }
-
 
 function generateTableContent(depth) {
     manifest = sessionStorage.getItem("manifest");
@@ -366,14 +513,200 @@ function generateTableContent(depth) {
                             <td>${fileData[0]}</td>
                             <td>${getNiceTime(fileData[2].split('_')[0])}</td>
                             <td>${getNiceSize(fileData[1])}</td>
-                            <td><button class="sharing">Sharing</button></td>
+                            <td><button class="sharing" onclick="openSharing('${fileData[2]}')">Sharing</button></td>
                             <td onclick="deleteRes('${fileData[2]}');"><i class="fa fa-trash-o" aria-hidden="true"></i></td>
                         </tr>`;
     }
     return genHTML;
 }
 
-function getIcon(size) {
+async function openSharing(resource) {
+    dialog.style.display = "block";
+    let shares = [];
+    let resourceHash = "";
+    const detes = getFromManifest(resource);
+    const key = await genKey(detes[0], detes[1]);
+
+    let manifest = sessionStorage.getItem("manifest");
+    manifest = JSON.parse(manifest);
+    for(let file of manifest["root"]) {
+        if(file.resource == resource && file.sharing.length != 0) {
+            for(let user of file.sharing) {
+                document.getElementById("userList").innerHTML += `<tr id="${user}"><td>${user}</td><td><button style="background-color='#dc3545'" onclick="removeSharing('${user}','${resource}');">Revoke</button>`
+            }
+        }
+    }
+
+    addBtn.addEventListener("click", () => {
+        const username = usernameInput.value.trim();
+        if (username === "") {
+            return;
+        }
+
+        const data = {
+            "key": key
+        };
+
+        fetch("/shares", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        })
+            .then(response => {
+                if (response.status == 401) {
+                    console.log("Bad request. Try again");
+                    return;
+                } else if (response.status == 403) {
+                    alert("Unauthorized server access");
+                    return;
+                } else if (response.status == 200) {
+                    return response.json();
+                }
+            })
+            .then(jsonContent => {
+                shares = jsonContent["shares"];
+            })
+            .then(_ => {
+                const solution = generateRandom(32);
+                sha256digest(resource)
+                    .then(resHash => {
+                        resourceHash = resHash
+                    })
+                    .then(_ => {
+                        const serverData = {
+                            "share": shares[1],
+                            "challenge": solution,
+                            "resHash": resourceHash,
+                            "username": username
+                        };
+                        const clientData = {
+                            "share": shares[0],
+                            "resource": resource,
+                            "name": detes[3],
+                            "size": detes[2],
+                            "username": username
+                        };
+
+                        fetch("/serverShare", {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify(serverData)
+                        })
+                            .then(response => {
+                                if (response.status == 401) {
+                                    showNotification("Failed", "The user does not exist");
+                                    throw new Error();
+                                } else if (response.status != 200) {
+                                    alert("There was error while sharing. Try again");
+                                    throw new Error();
+                                }
+                            })
+                            .then(_ => {
+                                fetch("/clientShare", {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json'
+                                    },
+                                    body: JSON.stringify(clientData)
+                                })
+                                    .then(response => {
+                                        if (response.status != 200) {
+                                            alert("There was error while sharing. Try again");
+                                            throw new Error();
+                                        }
+                                    })
+                                    .then(_ => {
+                                        let manifest = sessionStorage.getItem("manifest");
+                                        manifest = JSON.parse(manifest);
+                                        for (let i = 0; i < manifest.root.length; i++) {
+                                            if(manifest.root[i].resource == resource) {
+                                                manifest.root[i].sharing.push(username)
+                                            }
+                                        }
+
+                                        sessionStorage.setItem("manifest",JSON.stringify(manifest));
+                                        forceUpdateManifest(manifest);
+                                        const listItem = document.getElementById("userList");
+                                        listItem.innerHTML += `<tr id="${username}"><td>${username}</td><td><button style="background-color='#dc3545'" onclick="removeSharing('${username}','${resource}');">Revoke</button>`
+                                        showNotification("Success", "File Shared with user successfully")
+                                    })
+                                    .catch(_ => {});
+                            }).catch(_ => {});
+                    })
+            })
+            .catch(_ => {});
+    });
+}
+
+async function forceUpdateManifest(manifest) {
+    const encManifest = await encryptManifest(JSON.stringify(manifest));
+    fetch("/update", {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({'manifest':encManifest})
+    })
+}
+
+async function removeSharing(username, resource) {
+    let data = {
+        "resource": resource,
+        "challenge": "",
+        "username": username,
+    };
+    let resHash = await sha256digest(resource);
+    fetch("/revoke", {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    })
+        .then(response => {
+            if (response.ok) return response.json();
+        })
+        .then(jsonContent => {
+            const challenge = jsonContent["challenge"];
+            solveChallenge(challenge, resource)
+            .then(solution => {
+                data['challenge'] = solution;
+                data.resHash = resHash;
+            })
+            .then(_ => {
+                fetch("/revoke", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                })
+                    .then(response => {
+                        if (response.ok) {
+                            showNotification("Success", "Access Revoked");
+                            const listItem = document.getElementById(username);
+                            listItem.remove();
+                            let manifest = JSON.parse(sessionStorage.getItem("manifest"));
+                            for(let i  = 0; i < manifest.root.length; i++) {
+                                if(manifest.root[i].resource == resource) {
+                                    manifest.root[i].sharing.splice(manifest.root[i].sharing.indexOf(username),1);
+                                }
+                            }
+                            sessionStorage.setItem("manifest",JSON.stringify(manifest));
+                            forceUpdateManifest(manifest);
+                        }
+                        else showNotification("Failed", "Something went wrong");
+                    })
+            })
+        });
+
+}
+
+function getIcon(size = '') {
     if (size != '') return '<i class="fa fa-file" aria-hidden="true"></i>'
     else return '<i class="fa fa-folder" aria-hidden="true"></i>'
 }
@@ -419,7 +752,6 @@ function getNiceSize(bytes, decimals = 2) {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
 }
 
-
 function generateManifest(originalFileNames, renamedFiles, jsonData) {
     let detes = [];
 
@@ -443,7 +775,8 @@ function generateManifest(originalFileNames, renamedFiles, jsonData) {
                 "resource": detail[2],
                 "size": detail[1],
                 "hash": detail[3],
-                "salt": detail[4]
+                "salt": detail[4],
+                "sharing": []
             });
         } else {
             components.forEach(component => {
@@ -523,8 +856,18 @@ async function encryptFile(file, key) {
     combinedChallenge.set(new Uint8Array(challengeBuffer), newIV.byteLength);
 
     const challenge = btoa(String.fromCharCode.apply(null, combinedChallenge));
-    const encFile = btoa(String.fromCharCode.apply(null, combinedData));
+    const encFile = _arrayBufferToBase64(combinedData);
     return [encFile, solution, challenge];
+}
+
+function _arrayBufferToBase64(buffer) {
+    var binary = '';
+    var bytes = new Uint8Array(buffer);
+    var len = bytes.byteLength;
+    for (var i = 0; i < len; i++) {
+        binary += String.fromCharCode(bytes[i]);
+    }
+    return window.btoa(binary);
 }
 
 async function logout() {
@@ -562,7 +905,6 @@ async function encryptManifest(manifest) {
         importedKey,
         manifestBuffer
     );
-
     const combinedData = new Uint8Array(iv.byteLength + encryptedManifest.byteLength);
     combinedData.set(iv, 0);
     combinedData.set(new Uint8Array(encryptedManifest), iv.byteLength);
@@ -618,6 +960,7 @@ async function uploadFiles(files) {
                 document.getElementById("uploaded-files").innerHTML = generateTableContent('');
             }
         });
+
 }
 
 async function getFileHash(file) {

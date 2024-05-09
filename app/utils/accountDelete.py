@@ -12,6 +12,7 @@ def accountDeleteSequence(usr: str, resources: list):
         dbCursor.execute("DELETE FROM proofs WHERE resource=?", (res,))
         targetRes = path.join(storageDir, res)
         remove(targetRes)
-    con.commit()
     manifestFile = path.join(manifestDir, "{}".format(usr))
+    dbCursor.execute("DELETE FROM credentials WHERE username=?",(usr,))
+    con.commit()
     remove(manifestFile)
